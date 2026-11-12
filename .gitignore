@@ -1,0 +1,11 @@
+# runtime state — personal to each install
+Machine/Army/army.json
+Machine/Army/army_live.json
+Machine/Army/army_live.json.lock
+Machine/Army/army_live.json.tmp
+Machine/Army/rhythm/status/*.json
+Dashboard/data/
+__pycache__/
+*.pyc
+.DS_Store
+.obsidian/workspace*.json

@@ -1,0 +1,29 @@
+{
+  "_note": "Written by /setup-camp. Every name, colour and label the camp shows comes from here. Re-run python Machine/Army/build_army.py after editing.",
+  "org": "Your Company",
+  "army_name": "Your Army",
+  "operator": "Operator",
+  "businesses": [
+    {"id": "main", "name": "Your Company", "color": "#d4a04a"}
+  ],
+  "theme": {
+    "page": "war-camp-3d.html",
+    "camp_title": "War Camp",
+    "metaphor": "army",
+    "accent": "#d4a04a",
+    "accent_2": "#e0463c",
+    "background": "#0b0d10",
+    "font_display": "Cinzel",
+    "terms": {
+      "army": "Army",
+      "division": "Division",
+      "general": "General",
+      "campaign": "Campaign",
+      "deploy": "Deploy",
+      "chat": "Court Chat"
+    }
+  },
+  "dashboard_port": 5770,
+  "timezone": "America/New_York",
+  "connectors": []
+}

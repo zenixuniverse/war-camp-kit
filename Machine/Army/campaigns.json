@@ -1,0 +1,796 @@
+[
+ {
+  "id": "inbox-triage",
+  "name": "Operation Watchtower — Daily Inbox & Reply Triage",
+  "goal": "No reply, lead or client message goes unread: every inbound is classified, routed and has a drafted answer the same day.",
+  "trigger": "Daily (morning) and after every outbound batch.",
+  "phases": [
+   {
+    "name": "Sweep",
+    "agents": [
+     "engineering-email-intelligence-engineer",
+     "sales-data-extraction-agent"
+    ],
+    "output": "Machine/Agents/Sales/<date>_inbox_sweep.md — every new reply/lead/client message (from the inboxes and tools listed in BRIEFING.md) classified hot/warm/objection/support/noise",
+    "gate": ""
+   },
+   {
+    "name": "Route & draft",
+    "agents": [
+     "herald",
+     "sales-outreach",
+     "steward",
+     "support-support-responder"
+    ],
+    "output": "Drafted answers per message; hot replies get a call-booking draft",
+    "gate": "Operator approves each reply before it is sent"
+   },
+   {
+    "name": "Update the truth",
+    "agents": [
+     "data-consolidation-agent",
+     "sales-pipeline-analyst"
+    ],
+    "output": "One pipeline record per lead in the CRM named in BRIEFING.md + live JSON counters (only for real, verified events)",
+    "gate": ""
+   }
+  ]
+ },
+ {
+  "id": "revenue-ops",
+  "name": "Operation Ledger — Billing, CRM & Contracts Setup",
+  "goal": "Close the money/paper gaps: one CRM source of truth, working payment links, MSA/SOW/NDA templates, MRR tracking.",
+  "trigger": "One-time build-out, then re-run whenever a gap reappears in the weekly War Council.",
+  "phases": [
+   {
+    "name": "CRM truth",
+    "agents": [
+     "data-consolidation-agent",
+     "specialized-workflow-architect",
+     "automation-governance-architect"
+    ],
+    "output": "Machine/Army/ops/crm_source_of_truth.md — one schema; every place leads/clients live today reconciled",
+    "gate": "Operator approves the schema"
+   },
+   {
+    "name": "Billing",
+    "agents": [
+     "treasurer",
+     "engineering-payments-billing-engineer",
+     "finance-bookkeeper-controller"
+    ],
+    "output": "Payment links per offer (payment processor from BRIEFING.md) + invoice template + MRR sheet",
+    "gate": "Operator connects the payment processor and approves prices"
+   },
+   {
+    "name": "Contracts",
+    "agents": [
+     "legal-document-review",
+     "support-legal-compliance-checker",
+     "chancellor"
+    ],
+    "output": "Legal/ MSA, SOW, NDA and partner agreement templates",
+    "gate": "Operator approves (not legal advice; attorney review recommended)"
+   }
+  ]
+ },
+ {
+  "id": "measurement",
+  "name": "Operation Lantern — Site Measurement & Conversion",
+  "goal": "Every web property can count visitors, leads and sources (analytics, pixel, UTMs, forms).",
+  "trigger": "One-time build-out; re-run on every new site launch.",
+  "phases": [
+   {
+    "name": "Tracking plan",
+    "agents": [
+     "paid-media-tracking-specialist",
+     "oracle"
+    ],
+    "output": "Tracking plan: analytics + ad pixels + UTM convention for every site listed in BRIEFING.md",
+    "gate": ""
+   },
+   {
+    "name": "Implement",
+    "agents": [
+     "engineering-frontend-developer",
+     "smith"
+    ],
+    "output": "Tags + a lead form on each site",
+    "gate": "Operator approves the production deploy"
+   },
+   {
+    "name": "Verify & CRO",
+    "agents": [
+     "testing-reality-checker",
+     "design-persona-walkthrough"
+    ],
+    "output": "Event verification + CRO walkthrough report",
+    "gate": ""
+   }
+  ]
+ },
+ {
+  "id": "reputation",
+  "name": "Operation Herald's Horn — Reviews, Profiles & Partners",
+  "goal": "Build the trust layer: Google/Clutch reviews, LinkedIn company page, TikTok handle, referral engine, white-label partner recruiting.",
+  "trigger": "Monthly, and after every client win.",
+  "phases": [
+   {
+    "name": "Ask & profile",
+    "agents": [
+     "customer-success-manager",
+     "marketing-linkedin-content-creator",
+     "marketing-pr-communications-manager"
+    ],
+    "output": "Review-request drafts + profile copy + referral offer mechanics (offer terms from BRIEFING.md)",
+    "gate": "Operator approves outreach to clients"
+   },
+   {
+    "name": "Partner recruiting",
+    "agents": [
+     "sales-offer-lead-gen-strategist",
+     "sales-account-strategist",
+     "herald"
+    ],
+    "output": "Partner / reseller prospect list + pitch (terms from BRIEFING.md)",
+    "gate": "Operator approves sends"
+   }
+  ]
+ },
+ {
+  "id": "outbound-to-close",
+  "name": "Operation Vanguard — Outbound to Close",
+  "goal": "Turn a niche + area into booked calls and signed clients.",
+  "trigger": "Weekly (Mon) outbound sprint, or the operator names a niche/area.",
+  "phases": [
+   {
+    "name": "Offer & targets",
+    "agents": [
+     "sales-offer-lead-gen-strategist",
+     "sales-outbound-strategist",
+     "oracle"
+    ],
+    "output": "Outreach/<date>_<niche>_<area>_plan.md + qualified lead list",
+    "gate": ""
+   },
+   {
+    "name": "Research & personalise",
+    "agents": [
+     "herald",
+     "sales-outreach",
+     "marketing-x-twitter-intelligence-analyst"
+    ],
+    "output": "Per-lead research + 3-touch drafts (pain-first, real proof)",
+    "gate": ""
+   },
+   {
+    "name": "Send approval",
+    "agents": [
+     "herald"
+    ],
+    "output": "Send list with count + recipients (sender identity, signature and compliance footer from BRIEFING.md)",
+    "gate": "Operator approves count, recipients and copy before anything is sent; verify every send by message id"
+   },
+   {
+    "name": "Replies & discovery",
+    "agents": [
+     "sales-discovery-coach",
+     "sales-coach"
+    ],
+    "output": "Reply triage + call prep sheet per booked call",
+    "gate": ""
+   },
+   {
+    "name": "Proposal & close",
+    "agents": [
+     "sales-proposal-strategist",
+     "sales-deal-strategist",
+     "specialized-pricing-analyst"
+    ],
+    "output": "Clients/<Client>/proposal.md + close plan",
+    "gate": "Operator approves price + proposal before it goes out"
+   },
+   {
+    "name": "Book it",
+    "agents": [
+     "treasurer",
+     "sales-pipeline-analyst"
+    ],
+    "output": "Invoice draft + pipeline/MRR counters updated",
+    "gate": ""
+   }
+  ]
+ },
+ {
+  "id": "client-onboarding",
+  "name": "Operation Keep — Client Onboarding",
+  "goal": "A signed client is contracted, invoiced, kicked off and delivering inside 72 hours.",
+  "trigger": "A client says yes / pays.",
+  "phases": [
+   {
+    "name": "Paper",
+    "agents": [
+     "legal-document-review",
+     "support-legal-compliance-checker",
+     "chancellor"
+    ],
+    "output": "Clients/<Client>/contract.md (SOW, terms)",
+    "gate": "Operator approves the contract before sending"
+   },
+   {
+    "name": "Money",
+    "agents": [
+     "treasurer",
+     "finance-bookkeeper-controller"
+    ],
+    "output": "Invoice + revenue entry",
+    "gate": ""
+   },
+   {
+    "name": "Kickoff",
+    "agents": [
+     "steward",
+     "customer-success-manager",
+     "project-management-project-shepherd"
+    ],
+    "output": "Clients/<Client>/onboarding.md — intake, access checklist, 30-day plan, success metrics",
+    "gate": ""
+   },
+   {
+    "name": "Brand capture",
+    "agents": [
+     "design-brand-guardian",
+     "bard"
+    ],
+    "output": "Clients/<Client>/brand.md (palette, voice, do/don't)",
+    "gate": ""
+   }
+  ]
+ },
+ {
+  "id": "website-build",
+  "name": "Operation Citadel — Client Website Build",
+  "goal": "Ship a conversion-ready client website from brief to live.",
+  "trigger": "A website client is onboarded.",
+  "phases": [
+   {
+    "name": "Brief",
+    "agents": [
+     "product-manager",
+     "design-ux-researcher",
+     "research-synthesist"
+    ],
+    "output": "Site brief: goals, audience, pages, competitors, CTA",
+    "gate": "Operator/client approves the brief"
+   },
+   {
+    "name": "Design",
+    "agents": [
+     "artisan",
+     "design-ux-architect",
+     "design-ui-designer",
+     "design-brand-guardian"
+    ],
+    "output": "Direction + page comps",
+    "gate": "Client approves the design direction"
+   },
+   {
+    "name": "Copy & search",
+    "agents": [
+     "marketing-content-creator",
+     "marketing-seo-specialist",
+     "marketing-aeo-foundations"
+    ],
+    "output": "Page copy, meta, schema, llms.txt",
+    "gate": ""
+   },
+   {
+    "name": "Build",
+    "agents": [
+     "smith",
+     "engineering-frontend-developer",
+     "engineering-cms-developer"
+    ],
+    "output": "Site repo + preview URL",
+    "gate": ""
+   },
+   {
+    "name": "Inspect",
+    "agents": [
+     "testing-reality-checker",
+     "testing-accessibility-auditor",
+     "testing-performance-benchmarker",
+     "design-ui-finish-gate-reviewer"
+    ],
+    "output": "QA report with screenshots; must pass before launch",
+    "gate": ""
+   },
+   {
+    "name": "Launch",
+    "agents": [
+     "engineering-devops-automator",
+     "paid-media-tracking-specialist"
+    ],
+    "output": "Live site + analytics/conversion tracking",
+    "gate": "Operator approves the production deploy"
+   },
+   {
+    "name": "Handoff",
+    "agents": [
+     "steward",
+     "engineering-technical-writer"
+    ],
+    "output": "Client handoff doc + care-plan schedule",
+    "gate": ""
+   }
+  ]
+ },
+ {
+  "id": "social-retainer",
+  "name": "Operation Signal — Monthly Social Retainer",
+  "goal": "Deliver a client's month of content and prove the results.",
+  "trigger": "1st of each month per social client, or a new social client onboarded.",
+  "phases": [
+   {
+    "name": "Plan",
+    "agents": [
+     "marketing-social-media-strategist",
+     "marketing-instagram-curator",
+     "marketing-tiktok-strategist",
+     "product-trend-researcher"
+    ],
+    "output": "Clients/<Client>/content/<YYYY-MM>_calendar.md",
+    "gate": "Client approves the calendar"
+   },
+   {
+    "name": "Produce",
+    "agents": [
+     "marketing-short-video-editing-coach",
+     "marketing-carousel-growth-engine",
+     "marketing-content-creator",
+     "design-visual-storyteller"
+    ],
+    "output": "Reels, carousels, captions in the client folder",
+    "gate": ""
+   },
+   {
+    "name": "Check",
+    "agents": [
+     "design-brand-guardian",
+     "testing-reality-checker"
+    ],
+    "output": "Brand + QC pass on every asset",
+    "gate": "Client approves the content"
+   },
+   {
+    "name": "Schedule",
+    "agents": [
+     "project-management-studio-operations"
+    ],
+    "output": "Posts queued in the scheduler named in BRIEFING.md (drafts only)",
+    "gate": ""
+   },
+   {
+    "name": "Report",
+    "agents": [
+     "support-analytics-reporter",
+     "support-executive-summary-generator",
+     "steward"
+    ],
+    "output": "Month-end client report",
+    "gate": "Operator reviews before sending to client"
+   }
+  ]
+ },
+ {
+  "id": "pitch-deck",
+  "name": "Operation Banner — Pitch / Proposal Deck",
+  "goal": "A researched, brand-matched deck that wins the deal (client-pitch-deck skill).",
+  "trigger": "A qualified prospect needs a deck. Confirm who it is FROM and FOR, and what it is FOR (decide/brief/review/sell).",
+  "phases": [
+   {
+    "name": "Deep research",
+    "agents": [
+     "research-synthesist",
+     "marketing-x-twitter-intelligence-analyst",
+     "oracle"
+    ],
+    "output": "Verified dossier on the prospect (no guessing)",
+    "gate": ""
+   },
+   {
+    "name": "Narrative & offer",
+    "agents": [
+     "sales-proposal-strategist",
+     "specialized-pricing-analyst",
+     "sales-deal-strategist"
+    ],
+    "output": "Story outline + offer/price",
+    "gate": "Operator approves the offer + price"
+   },
+   {
+    "name": "Build",
+    "agents": [
+     "artisan",
+     "design-visual-storyteller",
+     "design-image-prompt-engineer"
+    ],
+    "output": "Deck HTML + PDF in Clients/<Client>/",
+    "gate": ""
+   },
+   {
+    "name": "Fact & finish check",
+    "agents": [
+     "testing-reality-checker",
+     "design-ui-finish-gate-reviewer"
+    ],
+    "output": "Every fact sourced or marked placeholder",
+    "gate": "Operator approves deploy/send"
+   }
+  ]
+ },
+ {
+  "id": "paid-launch",
+  "name": "Operation Artillery — Paid Campaign Launch",
+  "goal": "Launch and optimise a profitable Meta/TikTok/Google campaign for the business or a client.",
+  "trigger": "A paid budget is approved, or the daily ad board needs a new batch.",
+  "phases": [
+   {
+    "name": "Plan & tracking",
+    "agents": [
+     "paid-media-paid-social-strategist",
+     "paid-media-ppc-strategist",
+     "paid-media-tracking-specialist"
+    ],
+    "output": "Campaign plan + verified pixel/CAPI/analytics",
+    "gate": "Operator approves budget"
+   },
+   {
+    "name": "Creative",
+    "agents": [
+     "paid-media-creative-strategist",
+     "design-image-prompt-engineer",
+     "artisan"
+    ],
+    "output": "Ad batch (creative-pipeline engine) + copy variants",
+    "gate": "Operator picks winners"
+   },
+   {
+    "name": "Optimise",
+    "agents": [
+     "paid-media-auditor",
+     "paid-media-search-query-analyst",
+     "project-management-experiment-tracker"
+    ],
+    "output": "Weekly optimisation log + kill/scale calls",
+    "gate": ""
+   }
+  ]
+ },
+ {
+  "id": "product-growth",
+  "name": "Operation Beacon — Product / Offer Growth Sprint",
+  "goal": "Grow revenue on the live offers in BRIEFING.md with weekly, measured experiments.",
+  "trigger": "Weekly growth sprint.",
+  "phases": [
+   {
+    "name": "Experiment pick",
+    "agents": [
+     "marketing-growth-hacker",
+     "product-trend-researcher",
+     "oracle"
+    ],
+    "output": "Machine/Agents/Marketing/<date>_experiments.md (ICE-scored)",
+    "gate": ""
+   },
+   {
+    "name": "Content & email",
+    "agents": [
+     "bard",
+     "marketing-instagram-curator",
+     "marketing-email-strategist",
+     "marketing-carousel-growth-engine"
+    ],
+    "output": "Organic posts + nurture emails for each ICP in BRIEFING.md",
+    "gate": "Operator approves posts/sends"
+   },
+   {
+    "name": "Outbound",
+    "agents": [
+     "herald",
+     "sales-outreach"
+    ],
+    "output": "ICP-matched DM/email drafts for hot leads",
+    "gate": "Operator approves sends"
+   },
+   {
+    "name": "Measure",
+    "agents": [
+     "support-analytics-reporter",
+     "project-management-experiment-tracker"
+    ],
+    "output": "Experiment readout + next bets",
+    "gate": ""
+   }
+  ]
+ },
+ {
+  "id": "product-sprint",
+  "name": "Operation Forge — App Feature Sprint",
+  "goal": "Ship a feature on one of the company's apps or a client app, safely.",
+  "trigger": "A feature is prioritised on a roadmap, or a client app change is requested.",
+  "phases": [
+   {
+    "name": "Spec",
+    "agents": [
+     "architect",
+     "product-manager",
+     "product-sprint-prioritizer"
+    ],
+    "output": "Spec with acceptance criteria",
+    "gate": "Operator approves scope"
+   },
+   {
+    "name": "Design & architecture",
+    "agents": [
+     "engineering-software-architect",
+     "design-ux-architect"
+    ],
+    "output": "Design + technical plan",
+    "gate": ""
+   },
+   {
+    "name": "Build",
+    "agents": [
+     "smith",
+     "engineering-senior-developer",
+     "engineering-backend-architect"
+    ],
+    "output": "Code on a branch",
+    "gate": ""
+   },
+   {
+    "name": "Review & test",
+    "agents": [
+     "engineering-code-reviewer",
+     "testing-api-tester",
+     "security-appsec-engineer",
+     "testing-reality-checker"
+    ],
+    "output": "Review + test evidence",
+    "gate": "Operator approves merge/deploy"
+   },
+   {
+    "name": "Release",
+    "agents": [
+     "engineering-devops-automator",
+     "engineering-mobile-release-engineer"
+    ],
+    "output": "Release + changelog",
+    "gate": ""
+   }
+  ]
+ },
+ {
+  "id": "retention-expansion",
+  "name": "Operation Bastion — Retention & Expansion",
+  "goal": "Keep every client healthy, renew them, upsell them, and turn wins into case studies.",
+  "trigger": "Monthly (15th) client health review, a client goes quiet, or a client hits a result.",
+  "phases": [
+   {
+    "name": "Health",
+    "agents": [
+     "customer-success-manager",
+     "steward",
+     "product-feedback-synthesizer"
+    ],
+    "output": "Machine/Agents/Support/<date>_client_health.md (score per client)",
+    "gate": ""
+   },
+   {
+    "name": "Expansion",
+    "agents": [
+     "sales-account-strategist",
+     "specialized-pricing-analyst"
+    ],
+    "output": "Upsell/renewal plan per client",
+    "gate": "Operator approves offers"
+   },
+   {
+    "name": "Case study",
+    "agents": [
+     "bard",
+     "design-visual-storyteller",
+     "testing-reality-checker"
+    ],
+    "output": "Case study for the website's work/portfolio page (real numbers only)",
+    "gate": "Client + operator approve publishing"
+   }
+  ]
+ },
+ {
+  "id": "monthly-close",
+  "name": "Operation Treasury — Month-End Close & Reporting",
+  "goal": "Know exactly what the business made, spent and owes, and what to do next month.",
+  "trigger": "Monthly (1st).",
+  "phases": [
+   {
+    "name": "Close the books",
+    "agents": [
+     "finance-bookkeeper-controller",
+     "support-finance-tracker",
+     "accounts-payable-agent"
+    ],
+    "output": "Reconciled revenue/expenses (payment processor + subscriptions)",
+    "gate": ""
+   },
+   {
+    "name": "Analyse",
+    "agents": [
+     "treasurer",
+     "finance-fpa-analyst",
+     "chief-financial-officer"
+    ],
+    "output": "P&L, MRR by business, variance vs targets, cash runway",
+    "gate": ""
+   },
+   {
+    "name": "Brief the commander",
+    "agents": [
+     "support-executive-summary-generator",
+     "report-distribution-agent"
+    ],
+    "output": "One-page month review in the daily note",
+    "gate": ""
+   }
+  ]
+ },
+ {
+  "id": "weekly-command",
+  "name": "War Council — Weekly Command Review",
+  "goal": "Every Monday the operator sees pipeline, delivery, money and the next week's orders on one page.",
+  "trigger": "Weekly (Mon morning).",
+  "phases": [
+   {
+    "name": "Gather",
+    "agents": [
+     "sales-pipeline-analyst",
+     "support-analytics-reporter",
+     "project-management-project-shepherd",
+     "support-finance-tracker"
+    ],
+    "output": "Pipeline, KPIs, delivery status, cash",
+    "gate": ""
+   },
+   {
+    "name": "Decide",
+    "agents": [
+     "specialized-chief-of-staff",
+     "product-sprint-prioritizer",
+     "business-strategist"
+    ],
+    "output": "Ranked priorities + which campaigns run this week",
+    "gate": "Operator confirms the week's orders"
+   },
+   {
+    "name": "Record",
+    "agents": [
+     "support-executive-summary-generator",
+     "zk-steward"
+    ],
+    "output": "War council note in the daily note + vault links",
+    "gate": ""
+   }
+  ]
+ },
+ {
+  "id": "hiring",
+  "name": "Operation Muster — Hire a Human",
+  "goal": "Recruit, contract and onboard a contractor or team member.",
+  "trigger": "Capacity plan shows a gap, or the operator asks to hire.",
+  "phases": [
+   {
+    "name": "Role & sourcing",
+    "agents": [
+     "chancellor",
+     "recruitment-specialist",
+     "operations-manager"
+    ],
+    "output": "Role scorecard + job post + shortlist",
+    "gate": "Operator approves the post"
+   },
+   {
+    "name": "Offer & contract",
+    "agents": [
+     "chancellor",
+     "legal-document-review"
+    ],
+    "output": "Offer + contractor agreement",
+    "gate": "Operator approves the offer"
+   },
+   {
+    "name": "Onboard",
+    "agents": [
+     "hr-onboarding",
+     "corporate-training-designer",
+     "quartermaster"
+    ],
+    "output": "Onboarding plan + SOP training pack",
+    "gate": ""
+   }
+  ]
+ },
+ {
+  "id": "incident",
+  "name": "Operation Shield — Incident Response",
+  "goal": "Contain and fix a live outage, security issue or client fire fast, with a post-mortem.",
+  "trigger": "An app/site is down, a credential leaks, or a client escalates.",
+  "phases": [
+   {
+    "name": "Contain",
+    "agents": [
+     "engineering-incident-response-commander",
+     "engineering-sre",
+     "security-incident-responder"
+    ],
+    "output": "Incident log + mitigation",
+    "gate": ""
+   },
+   {
+    "name": "Communicate",
+    "agents": [
+     "steward",
+     "marketing-pr-communications-manager"
+    ],
+    "output": "Client/status message drafts",
+    "gate": "Operator approves any client message"
+   },
+   {
+    "name": "Post-mortem",
+    "agents": [
+     "engineering-incident-response-commander",
+     "quartermaster"
+    ],
+    "output": "Post-mortem + playbook DON'T lines",
+    "gate": ""
+   }
+  ]
+ },
+ {
+  "id": "new-market",
+  "name": "Operation Legion — Foreign Market Entry",
+  "goal": "Take the business or a client into a new country or platform.",
+  "trigger": "A client targets China, Korea, France or cross-border commerce.",
+  "phases": [
+   {
+    "name": "Assess",
+    "agents": [
+     "marketing-china-market-localization-strategist",
+     "specialized-korean-business-navigator",
+     "specialized-cultural-intelligence-strategist"
+    ],
+    "output": "Market-entry brief: platforms, culture, partners, risks",
+    "gate": ""
+   },
+   {
+    "name": "Localise",
+    "agents": [
+     "language-translator",
+     "marketing-cross-border-ecommerce",
+     "marketing-xiaohongshu-specialist"
+    ],
+    "output": "Localised offer + content plan",
+    "gate": "Operator/client approves"
+   },
+   {
+    "name": "Comply",
+    "agents": [
+     "support-legal-compliance-checker",
+     "data-privacy-officer"
+    ],
+    "output": "Compliance checklist",
+    "gate": ""
+   }
+  ]
+ }
+]

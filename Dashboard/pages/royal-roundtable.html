@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<!-- TEMPLATE — /setup-camp copies this to a business-named page and tunes it (see Dashboard/API.md tuning checklist). -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Round Table</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --accent:#d4af37; --accent-2:#c1121f; --bg:#050302;
+    --ink:#0b0805; --panel:rgba(12,9,6,.84); --panel-border:rgba(176,138,64,.45);
+    --text:#e8dcc0; --text-dim:#9d8e6e; --font-display:'Cinzel';
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+    font-family:'Cormorant Garamond',Georgia,serif;font-size:15px}
+  #scene{position:fixed;inset:0}
+  #labels{position:fixed;inset:0;pointer-events:none}
+  .d{font-family:var(--font-display),serif}
+
+  #loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99;transition:opacity .8s}
+  #loading.gone{opacity:0;pointer-events:none}
+  #loading .ring{width:90px;height:90px;border:3px solid var(--accent-2);border-radius:50%;box-shadow:0 0 24px var(--accent-2);animation:pulse 1.6s ease-in-out infinite}
+  #loading .t{font-family:var(--font-display),serif;letter-spacing:.5em;color:var(--accent);margin-top:24px;font-size:13px}
+  @keyframes pulse{0%,100%{opacity:.5;transform:scale(.95)}50%{opacity:1;transform:scale(1)}}
+
+  .panel{position:fixed;background:var(--panel);border:1px solid var(--panel-border);backdrop-filter:blur(8px);border-radius:6px;
+    box-shadow:0 0 30px rgba(0,0,0,.7), inset 0 0 24px rgba(0,0,0,.5);z-index:10;display:flex;flex-direction:column;overflow:hidden}
+  .panel-h{font-family:var(--font-display),serif;font-weight:700;font-size:12px;letter-spacing:.26em;color:var(--accent);
+    padding:9px 14px 8px;border-bottom:1px solid rgba(176,138,64,.3);display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;flex:none;
+    background:linear-gradient(180deg,rgba(255,255,255,.04),transparent)}
+  .panel-h .tgl{margin-left:auto;color:var(--text-dim);font-size:11px}
+  .panel.min .panel-b,.panel.min form,.panel.min .tabs{display:none}
+  .panel-b{padding:10px 14px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--accent) transparent;flex:1}
+  .empty{color:var(--text-dim);font-style:italic;font-size:14px;line-height:1.4;padding:6px 0}
+  .sub{font-family:var(--font-display),serif;font-size:10px;letter-spacing:.25em;color:var(--accent-2);margin:10px 0 5px;border-bottom:1px dotted rgba(255,255,255,.15);padding-bottom:3px}
+
+  #topbar{position:fixed;top:0;left:0;right:0;z-index:11;display:flex;flex-direction:column;align-items:center;padding:10px 20px;
+    background:linear-gradient(180deg,rgba(0,0,0,.85),transparent);pointer-events:none}
+  #crestTitle{font-family:var(--font-display),serif;font-weight:900;font-size:17px;letter-spacing:.42em;color:var(--text)}
+  #crestSub{font-size:12px;letter-spacing:.3em;color:var(--text-dim);font-style:italic}
+  #clockbox{position:fixed;top:12px;right:18px;z-index:12;text-align:right;font-family:var(--font-display),serif}
+  #clock{font-size:17px;color:var(--accent);letter-spacing:.12em}
+  #datestr{font-size:10px;color:var(--text-dim);letter-spacing:.2em}
+  #conn{position:fixed;top:12px;left:18px;z-index:12;display:flex;align-items:center;gap:7px;font-family:var(--font-display),serif;font-size:10px;letter-spacing:.22em;color:var(--text-dim)}
+  #conn .dot{width:8px;height:8px;border-radius:50%;background:#3ddc84;box-shadow:0 0 8px #3ddc84}
+  #conn.dead .dot{background:#ff2d3f;box-shadow:0 0 8px #ff2d3f}
+
+  /* left: KPIs + today's rhythm */
+  #kpis{left:14px;top:70px;width:300px;max-height:calc(50vh - 70px)}
+  #rhythm{left:14px;top:calc(50vh + 6px);width:300px;max-height:calc(50vh - 260px);min-height:120px}
+  .bizrow{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+  .bizrow button{background:none;border:1px solid var(--panel-border);color:var(--text-dim);font-family:var(--font-display),serif;font-size:10px;letter-spacing:.15em;padding:3px 9px;border-radius:12px;cursor:pointer}
+  .bizrow button.on{color:var(--text);border-color:var(--bc,var(--accent));box-shadow:0 0 8px var(--bc,var(--accent))}
+  .kgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px}
+  .kv{display:flex;flex-direction:column;font-size:13px}
+  .kv span{color:var(--text-dim);font-size:12px}
+  .kv b{color:var(--text);font-family:var(--font-display),serif;font-size:17px}
+  .kv.money b{color:var(--accent)}
+  .log-i{font-size:13px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.07);line-height:1.3}
+  .log-i .lt{font-family:var(--font-display),serif;font-size:9.5px;color:var(--text-dim);margin-right:6px}
+  .duty{display:flex;gap:8px;align-items:baseline;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.07);font-size:13.5px}
+  .duty .tm{font-family:var(--font-display),serif;font-size:10px;color:var(--text-dim);flex:none;width:38px}
+  .duty .dd{flex:1}
+  .dst{font-family:var(--font-display),serif;font-size:9px;letter-spacing:.1em;padding:1px 6px;border-radius:3px;border:1px solid;flex:none}
+  .dst.done{color:#7fe3a8;border-color:rgba(61,220,132,.5)}
+  .dst.running{color:#ffe29a;border-color:var(--accent)}
+  .dst.blocked,.dst.due{color:#ff9aa0;border-color:var(--accent-2)}
+  .dst.upcoming,.dst.skipped{color:var(--text-dim);border-color:rgba(255,255,255,.2)}
+
+  /* right: tabbed */
+  #side{right:14px;top:70px;width:390px;bottom:268px}
+  .tabs{display:flex;flex:none;border-bottom:1px solid rgba(176,138,64,.3)}
+  .tabs button{flex:1;background:none;border:0;color:var(--text-dim);font-family:var(--font-display),serif;font-size:10px;letter-spacing:.16em;padding:9px 2px;cursor:pointer;border-bottom:2px solid transparent}
+  .tabs button.on{color:var(--accent);border-bottom-color:var(--accent-2)}
+  .pane{display:none}.pane.on{display:block}
+  .grp-h{font-family:var(--font-display),serif;font-size:11px;letter-spacing:.14em;color:var(--accent);margin:10px 0 4px}
+  .op{display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+  .op i{width:9px;height:9px;border-radius:50%;margin-top:5px;flex:none;background:var(--c,#888);box-shadow:0 0 8px var(--c,#888)}
+  .op.done i{box-shadow:none;opacity:.45}
+  .op .nm{font-family:var(--font-display),serif;font-size:12px;letter-spacing:.06em}
+  .op .do{font-size:13px;color:var(--text-dim);font-style:italic;line-height:1.3}
+  .op .el{margin-left:auto;font-family:var(--font-display),serif;font-size:10px;color:var(--text-dim);flex:none}
+  .div-h{display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.1);font-family:var(--font-display),serif;font-size:12px;letter-spacing:.1em}
+  .div-h i{width:10px;height:10px;border-radius:2px;background:var(--c);flex:none}
+  .div-h small{margin-left:auto;color:var(--text-dim);font-size:10px}
+  .div-b{display:none;padding:4px 0 6px 18px}.div.open .div-b{display:block}
+  .div-m{font-size:13px;color:var(--text-dim);font-style:italic;margin-bottom:4px;line-height:1.3}
+  .ag{display:flex;gap:6px;padding:3px 0;cursor:pointer;font-size:14px}
+  .ag:hover .an{color:var(--accent)}
+  .ag small{color:var(--text-dim);margin-left:auto;font-size:11px}
+  .dossier{border:1px solid var(--panel-border);border-radius:5px;padding:8px 10px;margin-bottom:8px;background:rgba(255,255,255,.03)}
+  .dossier .nm{font-family:var(--font-display),serif;font-size:16px;font-weight:900;letter-spacing:.1em;color:var(--accent)}
+  .dossier p{font-size:14px;line-height:1.35;margin:4px 0}
+  .dossier ul{margin:2px 0 4px 18px;font-size:13.5px}
+  .btn{background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.02));border:1px solid var(--accent-2);color:var(--text);font-family:var(--font-display),serif;font-size:10px;letter-spacing:.16em;padding:6px 12px;border-radius:4px;cursor:pointer}
+  .btn:hover{background:var(--accent-2)}
+  .camp{border-bottom:1px solid rgba(255,255,255,.1);padding:6px 0}
+  .camp-h{cursor:pointer}.camp-h .nm{font-family:var(--font-display),serif;font-size:13px;letter-spacing:.08em;color:var(--accent)}
+  .camp-h .gl{font-size:13px;color:var(--text-dim);font-style:italic}
+  .camp-b{display:none;margin-top:5px}.camp.open .camp-b{display:block}
+  .phase{border-left:2px solid var(--accent-2);padding:2px 0 2px 8px;margin:5px 0;font-size:13.5px}
+  .phase .pn{font-weight:600}.phase .meta{color:var(--text-dim);font-size:13px}
+  .brief{white-space:pre-wrap;font-size:14px;line-height:1.45}
+
+  /* chat */
+  #chat{left:50%;transform:translateX(-50%);bottom:14px;width:min(640px,calc(100vw - 740px));min-width:380px;height:240px}
+  #chatfeed{flex:1}
+  .chat-line{margin:3px 0;font-size:14px;line-height:1.4}
+  .chat-line .ts{font-family:var(--font-display),serif;font-size:9.5px;color:var(--text-dim);margin-right:6px}
+  .chat-line .who{font-family:var(--font-display),serif;font-size:11.5px;font-weight:700;letter-spacing:.08em;margin-right:6px;color:var(--accent)}
+  #chatform{display:flex;gap:6px;padding:8px 10px;border-top:1px solid rgba(176,138,64,.3);flex:none}
+  #chatform select,#chatform input{background:rgba(255,255,255,.05);border:1px solid var(--panel-border);color:var(--text);font-family:inherit;font-size:14px;border-radius:4px;padding:6px 8px;outline:none}
+  #chatform select{font-family:var(--font-display),serif;font-size:11px;width:130px}
+  #chatform select option{background:#111}
+  #chatform input{flex:1;min-width:0}
+
+  .seat-label{pointer-events:none;text-align:center;transform:translateY(-8px)}
+  .seat-label .sl-nick{font-family:var(--font-display),serif;font-weight:900;font-size:13px;letter-spacing:.2em;color:#e8dcc0;text-shadow:0 0 6px #000,0 0 14px var(--accent-2)}
+  .seat-label .sl-dept{font-family:var(--font-display),serif;font-size:8.5px;letter-spacing:.26em;color:#9d8e6e;text-shadow:0 0 6px #000}
+  .seat-label .sl-task{font-size:11.5px;font-style:italic;color:#cdbf9d;max-width:190px;margin:2px auto 0;text-shadow:0 1px 4px #000;line-height:1.25;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .seat-label .sl-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px;background:#44608f}
+  .seat-label.running .sl-dot{background:var(--accent-2);box-shadow:0 0 9px var(--accent-2);animation:blink 1.4s infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+  #hint{position:fixed;bottom:260px;left:50%;transform:translateX(-50%);z-index:9;font-family:var(--font-display),serif;font-size:9.5px;letter-spacing:.3em;color:rgba(157,142,110,.6);pointer-events:none;white-space:nowrap}
+  @media (max-width:1250px){ #rhythm{display:none} #chat{width:min(520px,calc(100vw - 440px));min-width:300px} }
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="ring"></div><div class="t" id="loadTxt">LOADING</div></div>
+<div id="scene"></div>
+<div id="labels"></div>
+
+<div id="topbar"><div id="crestTitle">ROUND TABLE</div><div id="crestSub"></div></div>
+<div id="conn"><div class="dot"></div><span id="connTxt">LINK LIVE</span></div>
+<div id="clockbox"><div id="clock">--:--</div><div id="datestr"></div></div>
+
+<div class="panel" id="kpis">
+  <div class="panel-h" data-tgl><span id="kpiTitle">NUMBERS</span><span class="tgl">&mdash;</span></div>
+  <div class="panel-b"><div class="bizrow" id="bizrow"></div><div id="kpiBody"><div class="empty">Loading the ledgers...</div></div></div>
+</div>
+
+<div class="panel" id="rhythm">
+  <div class="panel-h" data-tgl><span id="rhythmTitle">TODAY</span><span class="tgl">&mdash;</span></div>
+  <div class="panel-b" id="rhythmBody"><div class="empty">Loading...</div></div>
+</div>
+
+<div class="panel" id="side">
+  <div class="panel-h" data-tgl><span id="sideTitle">COMMAND</span><span class="tgl">&mdash;</span></div>
+  <div class="tabs">
+    <button class="on" data-pane="live" id="tabLive">LIVE</button>
+    <button data-pane="roster" id="tabRoster">ROSTER</button>
+    <button data-pane="camps" id="tabCamps">CAMPAIGNS</button>
+    <button data-pane="brief" id="tabBrief">BRIEF</button>
+  </div>
+  <div class="panel-b">
+    <div class="pane on" id="pane-live"></div>
+    <div class="pane" id="pane-roster"></div>
+    <div class="pane" id="pane-camps"></div>
+    <div class="pane" id="pane-brief"></div>
+  </div>
+</div>
+
+<div class="panel" id="chat">
+  <div class="panel-h" data-tgl><span id="chatTitle">CHAT</span><span class="tgl">&mdash;</span></div>
+  <div id="chatfeed" class="panel-b"></div>
+  <form id="chatform">
+    <select id="chatWho"></select>
+    <input id="chatMsg" type="text" placeholder="Say something..." autocomplete="off">
+    <button class="btn" type="submit">SEND</button>
+  </form>
+</div>
+
+<div id="hint">DRAG TO ORBIT &middot; SCROLL TO ZOOM &middot; CLICK A SEAT</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const $ = id => document.getElementById(id);
+const ESC_MAP = { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' };
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ESC_MAP[c]);
+const up = x => String(x).toUpperCase();
+const key = s => String(s ?? '').trim().toLowerCase();
+const jget = url => fetch(url, { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error(url + ' ' + r.status); return r.json(); });
+
+/* ═══ camp.json drives every name, colour and label ═══ */
+const CAMP = await jget('/api/camp').catch(() => ({}));
+const TH = CAMP.theme || {};
+const T = { army: 'Army', division: 'Division', general: 'General', campaign: 'Campaign', deploy: 'Deploy', chat: 'Chat', ...(TH.terms || {}) };
+const BUSINESSES = (CAMP.businesses && CAMP.businesses.length) ? CAMP.businesses : [{ id: 'main', name: CAMP.org || 'Main', color: TH.accent || '#d4af37' }];
+const bizOf = id => BUSINESSES.find(b => b.id === id);
+const bizColor = id => (bizOf(id) || {}).color || TH.accent || '#d4af37';
+const OPERATOR = CAMP.operator || 'Operator';
+{
+  const root = document.documentElement.style, set = (k, v) => v && root.setProperty(k, v);
+  set('--accent', TH.accent); set('--accent-2', TH.accent_2); set('--bg', TH.background);
+  if (TH.font_display) {
+    set('--font-display', "'" + TH.font_display + "'");
+    if (TH.font_display !== 'Cinzel') {
+      const l = document.createElement('link'); l.rel = 'stylesheet';
+      l.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(TH.font_display).replace(/%20/g, '+') + ':wght@500;700;900&display=swap';
+      document.head.appendChild(l);
+    }
+  }
+  const title = TH.camp_title || 'Round Table';
+  document.title = title;
+  $('crestTitle').textContent = up(title);
+  $('crestSub').textContent = CAMP.army_name || '';
+  $('connTxt').textContent = up(T.army) + ' LINK LIVE';
+  $('loadTxt').textContent = up(title);
+  $('kpiTitle').textContent = 'NUMBERS';
+  $('rhythmTitle').textContent = 'TODAY';
+  $('sideTitle').textContent = up(T.army);
+  $('chatTitle').textContent = up(T.chat);
+  $('tabRoster').textContent = up(T.division) + 'S';
+  $('tabCamps').textContent = up(T.campaign) + 'S';
+}
+const cssVar = (n, fb) => (getComputedStyle(document.documentElement).getPropertyValue(n) || '').trim() || fb;
+const ACCENT = cssVar('--accent', '#d4af37'), ACCENT2 = cssVar('--accent-2', '#c1121f');
+const colorObj = hex => { try { return new THREE.Color(hex); } catch (e) { return new THREE.Color(0xd4af37); } };
+
+/* ═══ roster (fetched once, retried until it arrives) ═══ */
+let ARMY = { divisions: [], agents: [], campaigns: [], rhythm: {} };
+const agentByKey = new Map();           // name/callsign/id -> agent
+const divOfAgent = new Map();           // key -> division id
+function indexArmy() {
+  agentByKey.clear(); divOfAgent.clear();
+  (ARMY.agents || []).forEach(a => [a.id, a.name, a.callsign].forEach(k => { if (k) { agentByKey.set(key(k), a); divOfAgent.set(key(k), a.division); } }));
+}
+async function loadArmy() {
+  try { ARMY = { ...ARMY, ...(await jget('/api/army')) }; indexArmy(); return true; } catch (e) { return false; }
+}
+await loadArmy();
+const DIVS = ARMY.divisions || [];
+const generalOf = d => agentByKey.get(key(d.general)) || null;
+
+/* ═══ scene helpers ═══ */
+let _s = 7; const rnd = () => (_s = (_s * 16807) % 2147483647) / 2147483647;
+function makeTex(w, h, draw, { repeat, wrap = true } = {}) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  if (wrap) t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  if (repeat) t.repeat.set(repeat[0], repeat[1]);
+  t.anisotropy = 4;
+  return t;
+}
+function starPath(g, cx, cy, r1, r2, n) {
+  g.beginPath();
+  for (let i = 0; i < n * 2; i++) {
+    const r = i % 2 ? r2 : r1, a = (i / (n * 2)) * Math.PI * 2 - Math.PI / 2;
+    const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+    if (i) g.lineTo(x, y); else g.moveTo(x, y);
+  }
+  g.closePath();
+}
+const woodTex = makeTex(1024, 1024, (g, w, h) => {
+  g.fillStyle = '#3a2414'; g.fillRect(0, 0, w, h);
+  for (let r = 30; r < 760; r += 9 + rnd() * 16) {
+    g.beginPath(); g.arc(w / 2, h / 2, r, 0, Math.PI * 2);
+    g.strokeStyle = 'rgba(' + (20 + rnd() * 30 | 0) + ',' + (12 + rnd() * 16 | 0) + ',' + (4 + rnd() * 8 | 0) + ',' + (.25 + rnd() * .4) + ')';
+    g.lineWidth = 1.5 + rnd() * 3; g.stroke();
+  }
+  for (let i = 0; i < 900; i++) { g.fillStyle = 'rgba(0,0,0,' + (rnd() * .12) + ')'; g.fillRect(rnd() * w, rnd() * h, 1 + rnd() * 3, 1 + rnd() * 14); }
+});
+const floorTex = makeTex(1024, 1024, (g, w, h) => {
+  g.fillStyle = '#171310'; g.fillRect(0, 0, w, h);
+  for (let ring = 0; ring < 9; ring++) {
+    const r0 = 60 + ring * 54, n = 10 + ring * 4;
+    for (let i = 0; i < n; i++) {
+      const a0 = (i / n) * Math.PI * 2 + ring * .21, a1 = ((i + .92) / n) * Math.PI * 2 + ring * .21;
+      g.beginPath(); g.arc(w / 2, h / 2, r0, a0, a1); g.arc(w / 2, h / 2, r0 + 50, a1, a0, true); g.closePath();
+      const v = 16 + rnd() * 16;
+      g.fillStyle = 'rgb(' + (v + 6 | 0) + ',' + (v + 2 | 0) + ',' + (v | 0) + ')'; g.fill();
+      g.strokeStyle = 'rgba(0,0,0,.85)'; g.lineWidth = 3; g.stroke();
+    }
+  }
+});
+const wallTex = makeTex(1024, 512, (g, w, h) => {
+  g.fillStyle = '#14100c'; g.fillRect(0, 0, w, h);
+  for (let y = 0; y < h; y += 42) {
+    const off = (y / 42) % 2 ? 46 : 0;
+    for (let x = -92; x < w; x += 92) { const v = 14 + rnd() * 14; g.fillStyle = 'rgb(' + (v + 4 | 0) + ',' + (v + 1 | 0) + ',' + (v - 2 | 0) + ')'; g.fillRect(x + off + 2, y + 2, 88, 38); }
+  }
+}, { repeat: [6, 1] });
+const flameTex = makeTex(64, 64, (g, w, h) => {
+  const r = g.createRadialGradient(32, 36, 2, 32, 32, 30);
+  r.addColorStop(0, 'rgba(255,240,180,1)'); r.addColorStop(.35, 'rgba(255,160,40,.9)'); r.addColorStop(.7, 'rgba(200,50,10,.45)'); r.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = r; g.fillRect(0, 0, w, h);
+}, { wrap: false });
+const emberTex = makeTex(32, 32, g => {
+  const r = g.createRadialGradient(16, 16, 1, 16, 16, 15);
+  r.addColorStop(0, 'rgba(255,200,120,1)'); r.addColorStop(.5, 'rgba(255,70,40,.7)'); r.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = r; g.fillRect(0, 0, 32, 32);
+}, { wrap: false });
+
+function bannerTex(name, color) {
+  return makeTex(512, 1024, (g, w, h) => {
+    g.clearRect(0, 0, w, h);
+    g.beginPath(); g.moveTo(14, 0); g.lineTo(w - 14, 0); g.lineTo(w - 14, h - 150); g.lineTo(w / 2, h - 22); g.lineTo(14, h - 150); g.closePath();
+    const base = g.createLinearGradient(0, 0, 0, h);
+    base.addColorStop(0, '#16120e'); base.addColorStop(1, '#070504');
+    g.fillStyle = base; g.fill();
+    g.save(); g.clip();
+    g.fillStyle = color; g.globalAlpha = .28; g.fillRect(0, 0, w, h); g.globalAlpha = 1;
+    for (let i = 0; i < 26; i++) { g.fillStyle = 'rgba(0,0,0,' + (.05 + rnd() * .12) + ')'; g.fillRect(rnd() * w, 0, 5 + rnd() * 16, h); }
+    g.restore();
+    g.lineWidth = 7; g.strokeStyle = color; g.stroke();
+    g.save(); g.shadowColor = color; g.shadowBlur = 34; g.fillStyle = color; starPath(g, w / 2, 330, 150, 62, 8); g.fill(); g.restore();
+    g.textAlign = 'center'; g.fillStyle = '#e8dcc0';
+    let fs = 64; const label = up(name);
+    g.font = '900 ' + fs + 'px "' + (TH.font_display || 'Cinzel') + '", serif';
+    while (g.measureText(label).width > w - 70 && fs > 22) { fs -= 4; g.font = '900 ' + fs + 'px "' + (TH.font_display || 'Cinzel') + '", serif'; }
+    g.fillText(label, w / 2, 620);
+  }, { wrap: false });
+}
+function shieldTex(letter, color) {
+  return makeTex(256, 256, (g, w, h) => {
+    g.clearRect(0, 0, w, h);
+    g.beginPath(); g.moveTo(38, 36); g.lineTo(218, 36);
+    g.bezierCurveTo(218, 130, 200, 180, 128, 232); g.bezierCurveTo(56, 180, 38, 130, 38, 36); g.closePath();
+    const grad = g.createLinearGradient(0, 30, 0, 240); grad.addColorStop(0, '#241a10'); grad.addColorStop(1, '#0d0905');
+    g.fillStyle = grad; g.fill();
+    g.lineWidth = 6; g.strokeStyle = color; g.shadowColor = color; g.shadowBlur = 14; g.stroke(); g.shadowBlur = 0;
+    g.textAlign = 'center'; g.fillStyle = '#e8dcc0';
+    g.font = '900 110px "' + (TH.font_display || 'Cinzel') + '", serif'; g.fillText(letter, 128, 148);
+  }, { wrap: false });
+}
+const tableTex = makeTex(1024, 1024, (g, w, h) => {
+  g.clearRect(0, 0, w, h);
+  g.strokeStyle = ACCENT2; g.lineWidth = 7; g.beginPath(); g.arc(w / 2, h / 2, 470, 0, Math.PI * 2); g.stroke();
+  g.lineWidth = 2.5; g.beginPath(); g.arc(w / 2, h / 2, 430, 0, Math.PI * 2); g.stroke();
+  g.font = '700 34px "' + (TH.font_display || 'Cinzel') + '", serif'; g.fillStyle = ACCENT; g.textAlign = 'center';
+  const motto = ' ✦ ' + up(CAMP.org || TH.camp_title || 'Round Table') + ' ✦ ' + up(TH.camp_title || 'Round Table') + ' ✦ ' + up(CAMP.army_name || '') + ' ';
+  const text = motto.repeat(Math.max(1, Math.ceil(72 / motto.length))).slice(0, Math.max(motto.length, 72));
+  for (let i = 0; i < text.length; i++) {
+    const a = (i / text.length) * Math.PI * 2;
+    g.save(); g.translate(w / 2 + Math.sin(a) * 448, h / 2 - Math.cos(a) * 448); g.rotate(a); g.fillText(text[i], 0, 0); g.restore();
+  }
+  g.save(); g.shadowColor = ACCENT2; g.shadowBlur = 60; g.fillStyle = ACCENT2; starPath(g, w / 2, h / 2, 250, 105, 8); g.fill(); g.restore();
+  g.fillStyle = ACCENT; starPath(g, w / 2, h / 2, 120, 50, 8); g.fill();
+}, { wrap: false });
+
+/* ═══ renderer / scene (sized from the number of seats) ═══ */
+const N = DIVS.length;
+const TABLE_R = Math.max(5.2, (N + 1) * .5);
+const SEAT_R = TABLE_R + 1.55;
+const HALL_R = Math.max(19, SEAT_R * 3.4);
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.5;
+$('scene').appendChild(renderer.domElement);
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(innerWidth, innerHeight);
+Object.assign(labelRenderer.domElement.style, { position: 'fixed', inset: '0', pointerEvents: 'none' });
+$('labels').appendChild(labelRenderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = colorObj(cssVar('--bg', '#050302')).multiplyScalar(.6);
+scene.fog = new THREE.FogExp2(0x070403, 0.02 * 19 / HALL_R);
+const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, .1, 300);
+const camK = SEAT_R / 6.75;
+const camD = camK * (N > 10 ? 1.35 : 1);
+camera.position.set(0, Math.min(15, 8.6 * camD), 15 * camD);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 1.6, 0);
+controls.enableDamping = true; controls.dampingFactor = .06;
+controls.minDistance = 6; controls.maxDistance = HALL_R * 1.8;
+controls.maxPolarAngle = Math.PI * .49; controls.minPolarAngle = Math.PI * .12;
+controls.autoRotate = true; controls.autoRotateSpeed = .4;
+let idleTimer;
+renderer.domElement.addEventListener('pointerdown', () => { controls.autoRotate = false; clearTimeout(idleTimer); idleTimer = setTimeout(() => controls.autoRotate = true, 45000); });
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), .85, .55, .72));
+composer.addPass(new OutputPass());
+
+scene.add(new THREE.AmbientLight(0x3a2a1a, 1.7));
+scene.add(new THREE.HemisphereLight(0x4a3a26, 0x141009, 1.0));
+const moon = new THREE.DirectionalLight(0x5a6a9a, .8); moon.position.set(-14, 22, -10); scene.add(moon);
+const candleLight = new THREE.PointLight(0xff9a3c, 100, 32 * camK, 2); candleLight.position.set(0, 3.4, 0); scene.add(candleLight);
+
+const floor = new THREE.Mesh(new THREE.CylinderGeometry(HALL_R, HALL_R, .4, 64), new THREE.MeshStandardMaterial({ map: floorTex, roughness: .92 }));
+floor.position.y = -.2; scene.add(floor);
+const wall = new THREE.Mesh(new THREE.CylinderGeometry(HALL_R, HALL_R, 16, 64, 1, true), new THREE.MeshStandardMaterial({ map: wallTex, roughness: 1, side: THREE.BackSide }));
+wall.position.y = 8; scene.add(wall);
+const ceil = new THREE.Mesh(new THREE.CylinderGeometry(HALL_R, HALL_R, .3, 64), new THREE.MeshBasicMaterial({ color: 0x020101, side: THREE.BackSide }));
+ceil.position.y = 16.1; scene.add(ceil);
+const pillarMat = new THREE.MeshStandardMaterial({ map: wallTex.clone(), roughness: 1 });
+for (let i = 0; i < 10; i++) {
+  const a = (i / 10) * Math.PI * 2 + Math.PI / 10;
+  const p = new THREE.Mesh(new THREE.CylinderGeometry(.85, 1.05, 16, 10), pillarMat);
+  p.position.set(Math.sin(a) * (HALL_R - 1.2), 8, Math.cos(a) * (HALL_R - 1.2)); scene.add(p);
+}
+
+const table = new THREE.Mesh(new THREE.CylinderGeometry(TABLE_R, TABLE_R * .97, .42, 64), new THREE.MeshStandardMaterial({ map: woodTex, roughness: .45, metalness: .08 }));
+table.position.y = 1.45; scene.add(table);
+const rim = new THREE.Mesh(new THREE.TorusGeometry(TABLE_R, .09, 12, 80), new THREE.MeshStandardMaterial({ color: colorObj(ACCENT), metalness: .9, roughness: .3 }));
+rim.rotation.x = Math.PI / 2; rim.position.y = 1.66; scene.add(rim);
+const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 2.6, 1.3, 24), new THREE.MeshStandardMaterial({ map: woodTex, roughness: .7 }));
+pedestal.position.y = .65; scene.add(pedestal);
+const sigilMat = new THREE.MeshBasicMaterial({ map: tableTex, transparent: true, depthWrite: false });
+const sigil = new THREE.Mesh(new THREE.CircleGeometry(TABLE_R * .82, 64), sigilMat);
+sigil.rotation.x = -Math.PI / 2; sigil.position.y = 1.675; scene.add(sigil);
+
+const waxMat = new THREE.MeshStandardMaterial({ color: 0xd9c9a3, roughness: .6 });
+const flameSprites = [];
+[[0, 0], [.55, .3], [-.5, .35], [.3, -.5], [-.35, -.45]].forEach(([x, z], i) => {
+  const hgt = .5 + (i % 3) * .14;
+  const c = new THREE.Mesh(new THREE.CylinderGeometry(.055, .07, hgt, 8), waxMat); c.position.set(x, 1.66 + hgt / 2, z); scene.add(c);
+  const f = new THREE.Sprite(new THREE.SpriteMaterial({ map: flameTex, blending: THREE.AdditiveBlending, depthWrite: false }));
+  f.scale.set(.34, .5, 1); f.position.set(x, 1.66 + hgt + .2, z); scene.add(f); flameSprites.push(f);
+});
+
+// banners: one per business, cycled around the wall
+const banners = [];
+const bannerCount = Math.max(6, BUSINESSES.length * 2);
+for (let i = 0; i < bannerCount; i++) {
+  const b = BUSINESSES[i % BUSINESSES.length];
+  const a = (i / bannerCount) * Math.PI * 2 + Math.PI / 8;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 5.2, 1, 8),
+    new THREE.MeshStandardMaterial({ map: bannerTex(b.name, b.color || ACCENT), transparent: true, side: THREE.DoubleSide, roughness: .9, emissive: 0x331111, emissiveIntensity: .2 }));
+  m.position.set(Math.sin(a) * (HALL_R - 1.7), 10.4, Math.cos(a) * (HALL_R - 1.7)); m.lookAt(0, 10.4, 0);
+  scene.add(m); banners.push(m);
+}
+
+// torches
+const torchFlames = [], torchLights = [];
+[0, 2, 5, 7].forEach(i => {
+  const a = (i / 10) * Math.PI * 2 + Math.PI / 10;
+  const pos = new THREE.Vector3(Math.sin(a) * (HALL_R - 2.3), 6.4, Math.cos(a) * (HALL_R - 2.3));
+  const f = new THREE.Sprite(new THREE.SpriteMaterial({ map: flameTex, blending: THREE.AdditiveBlending, depthWrite: false }));
+  f.scale.set(1.1, 1.6, 1); f.position.copy(pos); scene.add(f); torchFlames.push(f);
+  const L = new THREE.PointLight(0xff7a2a, 48, 20 * camK, 2); L.position.copy(pos); scene.add(L); torchLights.push(L);
+});
+
+const dustN = 320, dustPos = new Float32Array(dustN * 3);
+for (let i = 0; i < dustN; i++) { dustPos[i * 3] = (rnd() - .5) * HALL_R * 1.6; dustPos[i * 3 + 1] = rnd() * 13 + .5; dustPos[i * 3 + 2] = (rnd() - .5) * HALL_R * 1.6; }
+const dustGeo = new THREE.BufferGeometry(); dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
+const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({ map: emberTex, size: .09, transparent: true, opacity: .5, blending: THREE.AdditiveBlending, depthWrite: false, color: 0xc9b06a }));
+scene.add(dust);
+
+/* ═══ seats: the operator's throne + one seat per division general ═══ */
+const chairWood = new THREE.MeshStandardMaterial({ map: woodTex, roughness: .6 });
+const accentMat = new THREE.MeshStandardMaterial({ color: colorObj(ACCENT), metalness: .85, roughness: .35 });
+const armorMat = new THREE.MeshStandardMaterial({ color: 0x969ba8, metalness: .82, roughness: .36 });
+const armorDark = new THREE.MeshStandardMaterial({ color: 0x2e3138, metalness: .65, roughness: .5 });
+const box = (w, h, d, m, x, y, z, parent) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); parent.add(o); return o; };
+
+function buildChair(throne) {
+  const g = new THREE.Group(), s = throne ? 1.45 : 1;
+  box(1.3 * s, .16, 1.2 * s, chairWood, 0, 1.05, 0, g);
+  const cush = box(1.14 * s, .1, 1.04 * s, new THREE.MeshStandardMaterial({ color: 0x1c2436, roughness: .8 }), 0, 1.18, 0, g); cush.name = 'cushion';
+  box(1.3 * s, 2.5 * s, .14, chairWood, 0, 1.05 + 1.25 * s, -.55 * s, g);
+  box(.5 * s, .5 * s, .1, accentMat, 0, 1.05 + 2.55 * s, -.55 * s, g);
+  [[-.55, .5], [.55, .5], [-.55, -.5], [.55, -.5]].forEach(([x, z]) => box(.12 * s, 1.0, .12 * s, chairWood, x * s, .5, z * s, g));
+  [-.62, .62].forEach(x => { box(.1 * s, .1, 1.1 * s, chairWood, x * s, 1.55, -.05 * s, g); box(.1 * s, .45, .1 * s, chairWood, x * s, 1.32, .4 * s, g); });
+  return g;
+}
+function buildKnight(colorHex, throne, variant) {
+  const k = new THREE.Group(), s = throne ? 1.45 : 1, bs = throne ? 1.16 : 1;
+  const plate = throne ? accentMat : armorMat;
+  const cloth = new THREE.MeshStandardMaterial({ color: colorObj(colorHex).multiplyScalar(.55), roughness: .88 });
+  const eyeMat = new THREE.MeshBasicMaterial({ color: colorObj(colorHex) });
+  box(.6 * bs, .26 * bs, .52 * bs, armorDark, 0, 1.32, .02, k);
+  [-.18, .18].forEach(xx => {
+    box(.2 * bs, .17 * bs, .62 * bs, plate, xx * bs, 1.3, .33 * s, k);
+    box(.16 * bs, 1.16, .17 * bs, plate, xx * bs, .68, .62 * s, k);
+    box(.17 * bs, .11, .34 * bs, armorDark, xx * bs, .07, .72 * s, k);
+  });
+  const torsoY = 1.31 + .56 * bs;
+  const torso = box(.68 * bs, .88 * bs, .44 * bs, plate, 0, torsoY, 0, k); torso.rotation.x = -.07;
+  const tabard = box(.5 * bs, .82 * bs, .05, cloth, 0, torsoY - .06, .24 * bs, k); tabard.rotation.x = -.07;
+  box(.7 * bs, .1, .48 * bs, throne ? accentMat : armorDark, 0, torsoY - .42 * bs, .01, k);
+  const shoulderY = torsoY + .44 * bs;
+  [-1, 1].forEach(side => {
+    const p = new THREE.Mesh(new THREE.SphereGeometry(.18 * bs, 10, 8), plate); p.position.set(side * .42 * bs, shoulderY, 0); k.add(p);
+    const up_ = box(.13 * bs, .56 * bs, .13 * bs, plate, side * .5 * bs, torsoY + .12 * bs, .02, k); up_.rotation.z = -side * .3;
+    box(.12 * bs, .12 * bs, .52 * bs, plate, side * .62 * s, 1.66, .18 * s, k);
+    box(.15 * bs, .11 * bs, .2 * bs, armorDark, side * .62 * s, 1.68, .46 * s, k);
+  });
+  const head = new THREE.Group();
+  head.position.set(0, torsoY + .78 * bs, .04);
+  if (variant % 3 === 1) {
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(.2 * bs, 12, 10), plate); dome.scale.y = .9; head.add(dome);
+    box(.34 * bs, .13 * bs, .14 * bs, armorDark, 0, -.02, .12 * bs, head);
+  } else {
+    head.add(new THREE.Mesh(new THREE.CylinderGeometry(.19 * bs, .2 * bs, .36 * bs, 12), plate));
+  }
+  const eyes = box(.24 * bs, .045, .03, eyeMat, 0, .03, .19 * bs, head);
+  if (throne) {
+    const band = new THREE.Mesh(new THREE.TorusGeometry(.17 * bs, .03, 8, 16), accentMat); band.rotation.x = Math.PI / 2; band.position.y = .24 * bs; head.add(band);
+    for (let c = 0; c < 5; c++) { const a = (c / 5) * Math.PI * 2; const sp = new THREE.Mesh(new THREE.ConeGeometry(.028, .12, 5), accentMat); sp.position.set(Math.sin(a) * .17 * bs, .32 * bs, Math.cos(a) * .17 * bs); head.add(sp); }
+  } else {
+    const plume = new THREE.Mesh(new THREE.ConeGeometry(.06 * bs, .42, 7), cloth); plume.position.set(0, .3 * bs, -.06); plume.rotation.x = .35; head.add(plume);
+  }
+  k.add(head);
+  k.userData.parts = { head, eyes, torso, tabard, torsoY, eyeColor: colorObj(colorHex) };
+  return k;
+}
+
+// seat list: index 0 = throne (operator), then one per division
+const seatRoster = [{ throne: true, name: OPERATOR, sub: 'OPERATOR', color: ACCENT, div: null }]
+  .concat(DIVS.map(d => ({ throne: false, name: d.name, sub: (generalOf(d) || {}).name || d.general || '', color: d.color || ACCENT, div: d })));
+const seats = [];
+seatRoster.forEach((st, i) => {
+  const angle = Math.PI + (i / seatRoster.length) * Math.PI * 2;
+  const x = Math.sin(angle) * SEAT_R, z = Math.cos(angle) * SEAT_R;
+  const grp = buildChair(st.throne);
+  const knight = buildKnight(st.color, st.throne, i);
+  grp.add(knight);
+  // marker on the table before the seat, in the division colour
+  const orb = new THREE.Mesh(new THREE.SphereGeometry(.13, 16, 12), new THREE.MeshStandardMaterial({ color: colorObj(st.color), emissive: colorObj(st.color), emissiveIntensity: .5, roughness: .2 }));
+  orb.position.set(0, 1.85, 2.05); grp.add(orb);
+  grp.position.set(x, 0, z); grp.lookAt(0, 0, 0); scene.add(grp);
+  grp.traverse(o => { o.userData.seatIndex = i; });
+  const sh = st.throne ? 5.6 : 4.55;
+  const shield = new THREE.Sprite(new THREE.SpriteMaterial({ map: shieldTex(String(st.name).charAt(0).toUpperCase(), st.color), transparent: true, depthWrite: false }));
+  shield.scale.set(st.throne ? 1.5 : 1.15, st.throne ? 1.5 : 1.15, 1);
+  shield.position.set(x * 1.04, sh, z * 1.04); shield.userData.seatIndex = i; scene.add(shield);
+  const el = document.createElement('div');
+  el.className = 'seat-label standby';
+  el.innerHTML = '<div class="sl-nick"><span class="sl-dot"></span>' + esc(up(st.name)) + '</div><div class="sl-dept">' + esc(up(st.sub)) + '</div><div class="sl-task">&mdash;</div>';
+  const label = new CSS2DObject(el); label.position.set(x * 1.04, sh - .95, z * 1.04); scene.add(label);
+  const eN = 26, ePos = new Float32Array(eN * 3), eVel = [];
+  for (let q = 0; q < eN; q++) { ePos[q * 3] = x + (rnd() - .5) * 1.2; ePos[q * 3 + 1] = 1 + rnd() * 3; ePos[q * 3 + 2] = z + (rnd() - .5) * 1.2; eVel.push(.18 + rnd() * .5); }
+  const eGeo = new THREE.BufferGeometry(); eGeo.setAttribute('position', new THREE.BufferAttribute(ePos, 3));
+  const embers = new THREE.Points(eGeo, new THREE.PointsMaterial({ map: emberTex, size: .16, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, color: colorObj(st.color) }));
+  scene.add(embers);
+  seats.push({ st, group: grp, knight: knight.userData.parts, labelEl: el, embers, emberVel: eVel, baseX: x, baseZ: z, running: st.throne, shield });
+});
+
+/* ═══ live state ═══ */
+const state = { deps: [], dutyStatus: {}, live: {}, chat: [], lastChatLen: -1, serverTime: null };
+let curBiz = BUSINESSES[0].id, curDivOpen = null;
+
+function setConn(ok) { $('conn').classList.toggle('dead', !ok); $('connTxt').textContent = up(T.army) + (ok ? ' LINK LIVE' : ' LINK LOST'); }
+const LIVE_ST = new Set(['deployed', 'working']);
+const depDiv = d => divOfAgent.get(key(d.type)) || divOfAgent.get(key(d.by)) || null;
+
+function paintSeats() {
+  const live = state.deps.filter(d => LIVE_ST.has(d.status));
+  seats.forEach((seat, i) => {
+    let running = false, task = '';
+    if (i === 0) { running = live.length > 0; task = live.length ? live.length + ' on duty' : 'Standing by'; }
+    else {
+      const mine = live.filter(d => depDiv(d) === seat.st.div.id);
+      running = mine.length > 0;
+      task = running ? (mine[0].doing || mine[0].description || mine[0].type) : '';
+    }
+    seat.running = running;
+    seat.labelEl.classList.toggle('running', running); seat.labelEl.classList.toggle('standby', !running);
+    seat.labelEl.querySelector('.sl-task').textContent = task || '—';
+    seat.embers.material.opacity = running ? .95 : 0;
+    const c = seat.group.getObjectByName('cushion');
+    if (c) { c.material.color.set(running ? colorObj(seat.st.color) : 0x1c2436); }
+    seat.knight.eyes.material.color.copy(seat.knight.eyeColor).multiplyScalar(running ? 1.5 : .15);
+    seat.knight.headBow = running ? 0 : .3;
+  });
+}
+
+const fmtDur = ms => { const s = Math.max(0, Math.floor(ms / 1000)); if (s < 60) return s + 's'; const m = Math.floor(s / 60); return m < 60 ? m + 'm' : Math.floor(m / 60) + 'h ' + (m % 60) + 'm'; };
+const tms = iso => { const t = new Date(iso).getTime(); return isNaN(t) ? 0 : t; };
+
+function renderLive() {
+  const deps = state.deps.slice();
+  const live = deps.filter(d => LIVE_ST.has(d.status));
+  const done = deps.filter(d => d.status === 'done').slice(-6).reverse();
+  const row = d => {
+    const lv = LIVE_ST.has(d.status);
+    const el = lv && d.started ? fmtDur(Date.now() - tms(d.started)) : '';
+    return '<div class="op ' + (lv ? '' : 'done') + '" style="--c:' + esc(bizColor(d.biz)) + '"><i></i><div><div class="nm">' + esc(d.type || 'agent') + '</div><div class="do">' + esc(d.doing || d.description || '') + '</div></div><span class="el">' + esc(el) + '</span></div>';
+  };
+  const groups = {};
+  live.forEach(d => { const g = d.campaign ? ((ARMY.campaigns || []).find(c => c.id === d.campaign) || {}).name || d.campaign : 'Session task'; (groups[g] = groups[g] || []).push(d); });
+  let html = '';
+  const names = Object.keys(groups);
+  if (!names.length) html += '<div class="empty">Nobody is deployed right now. When you send an agent out, it appears here with what it is doing.</div>';
+  names.forEach(g => { html += '<div class="grp-h">' + esc(up(g)) + ' &middot; ' + groups[g].length + '</div>' + groups[g].map(row).join(''); });
+  if (done.length) html += '<div class="grp-h">RECENTLY FINISHED</div>' + done.map(row).join('');
+  if (BUSINESSES.length > 1) html += '<div class="sub">KEY</div>' + BUSINESSES.map(b => '<span style="color:' + esc(b.color) + ';margin-right:12px">&#9679; ' + esc(b.name) + '</span>').join('');
+  $('pane-live').innerHTML = html;
+  $('tabLive').textContent = 'LIVE' + (live.length ? ' (' + live.length + ')' : '');
+}
+
+function renderRoster() {
+  if (!DIVS.length) {
+    $('pane-roster').innerHTML = '<div class="empty">No ' + esc(T.division.toLowerCase()) + 's yet. Once /setup-camp builds the roster, every ' + esc(T.division.toLowerCase()) + ' and its ' + esc(T.general.toLowerCase()) + ' sits at this table.</div>';
+    return;
+  }
+  const liveDivs = new Set(state.deps.filter(d => LIVE_ST.has(d.status)).map(depDiv));
+  $('pane-roster').innerHTML = '<div id="dossier"></div>' + DIVS.map(d => {
+    const members = (ARMY.agents || []).filter(a => a.division === d.id);
+    return '<div class="div' + (curDivOpen === d.id ? ' open' : '') + '" data-div="' + esc(d.id) + '"><div class="div-h" style="--c:' + esc(d.color || ACCENT) + '"><i></i>' + esc(d.name) + (liveDivs.has(d.id) ? ' &#9679;' : '') + '<small>' + members.length + '</small></div>'
+      + '<div class="div-b"><div class="div-m">' + esc(d.mission || '') + '</div>'
+      + members.map(a => '<div class="ag" data-agent="' + esc(a.id || a.name) + '"><span>' + esc(a.emoji || '') + '</span><span class="an">' + esc(a.name) + '</span><small>' + esc(a.callsign || '') + '</small></div>').join('') + '</div></div>';
+  }).join('');
+}
+function showDossier(a) {
+  const li = (arr, h) => (arr && arr.length) ? '<div class="sub">' + h + '</div><ul>' + arr.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' : '';
+  const order = 'Use the ' + a.name + ' agent to: ';
+  $('dossier').innerHTML = '<div class="dossier"><div class="nm">' + esc(a.emoji || '') + ' ' + esc(a.name) + '</div>'
+    + '<div class="div-m">' + esc([a.callsign, a.role, a.rank].filter(Boolean).join(' · ')) + '</div>'
+    + '<p>' + esc(a.description || a.vibe || '') + '</p>'
+    + li(a.triggers, 'DEPLOY WHEN') + li(a.deliverables, 'DELIVERS')
+    + (a.cadence ? '<p><b>Cadence:</b> ' + esc(a.cadence) + '</p>' : '')
+    + '<button class="btn" id="copyOrder">COPY ' + esc(up(T.deploy)) + ' ORDER</button></div>';
+  $('copyOrder').onclick = async e => {
+    try { await navigator.clipboard.writeText(order); } catch (err) {
+      const t = document.createElement('textarea'); t.value = order; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch (e2) {} t.remove();
+    }
+    e.target.textContent = 'COPIED';
+    setTimeout(() => { e.target.textContent = 'COPY ' + up(T.deploy) + ' ORDER'; }, 1400);
+  };
+}
+$('pane-roster').addEventListener('click', e => {
+  const ag = e.target.closest('[data-agent]');
+  if (ag) { const a = agentByKey.get(key(ag.dataset.agent)); if (a) showDossier(a); return; }
+  const h = e.target.closest('.div-h');
+  if (h) { const dv = h.parentElement; dv.classList.toggle('open'); curDivOpen = dv.classList.contains('open') ? dv.dataset.div : null; }
+});
+
+function renderCamps() {
+  const camps = ARMY.campaigns || [];
+  const nm = T.campaign.toLowerCase();
+  if (!camps.length) { $('pane-camps').innerHTML = '<div class="empty">No ' + esc(nm) + 's drawn up yet. They appear here with their phases and the gate each one must pass.</div>'; return; }
+  $('pane-camps').innerHTML = camps.map(c => '<div class="camp"><div class="camp-h"><div class="nm">' + esc(c.name) + '</div><div class="gl">' + esc(c.goal || '') + '</div></div><div class="camp-b">'
+    + (c.trigger ? '<div class="phase"><div class="meta"><b>Trigger:</b> ' + esc(c.trigger) + '</div></div>' : '')
+    + (c.phases || []).map((p, j) => '<div class="phase"><div class="pn">' + (j + 1) + '. ' + esc(p.name) + '</div>'
+      + ((p.agents || []).length ? '<div class="meta">' + esc((p.agents || []).map(id => (agentByKey.get(key(id)) || {}).name || id).join(', ')) + '</div>' : '')
+      + (p.output ? '<div class="meta"><b>Output:</b> ' + esc(p.output) + '</div>' : '') + (p.gate ? '<div class="meta"><b>Gate:</b> ' + esc(p.gate) + '</div>' : '') + '</div>').join('')
+    + '</div></div>').join('');
+}
+$('pane-camps').addEventListener('click', e => { const h = e.target.closest('.camp-h'); if (h) h.parentElement.classList.toggle('open'); });
+
+/* today's rhythm */
+const WEEK = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+function dutyToday(when, d) {
+  const w = String(when || '').toLowerCase(), day = d.getDate(), dow = d.getDay();
+  if (w === 'daily') return true;
+  if (w === 'weekdays') return dow > 0 && dow < 6;
+  if (w === 'monthly-1') return day === 1;
+  if (w === 'monthly-15') return day === 15;
+  if (w === 'monthly-last') return day === new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  if (w === 'quarterly') return day === 1 && d.getMonth() % 3 === 0;
+  return w === WEEK[dow];
+}
+function renderRhythm() {
+  const now = new Date(), pad = n => String(n).padStart(2, '0');
+  const hhmm = pad(now.getHours()) + ':' + pad(now.getMinutes());
+  const today = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+  const liveDeps = state.deps;
+  let html = '', any = false;
+  BUSINESSES.forEach(b => {
+    const R = (ARMY.rhythm || {})[b.id];
+    if (!R || !Array.isArray(R.duties)) return;
+    const duties = R.duties.filter(x => dutyToday(x.when, now)).sort((a, c) => String(a.time || '').localeCompare(String(c.time || '')));
+    if (!duties.length) return;
+    any = true;
+    if (BUSINESSES.length > 1) html += '<div class="sub" style="color:' + esc(b.color) + '">' + esc(up(b.name)) + '</div>';
+    html += duties.map(x => {
+      const rep = (state.dutyStatus || {})[x.id];
+      const ids = (Array.isArray(x.agents) ? x.agents : []).map(key);
+      const hit = d => (x.campaign && d.campaign === x.campaign) || ids.includes(key(d.type));
+      const st = rep && ['done', 'blocked', 'skipped'].includes(rep.status) ? rep.status
+        : liveDeps.some(d => LIVE_ST.has(d.status) && hit(d)) ? 'running'
+        : liveDeps.some(d => d.status === 'done' && String(d.started).slice(0, 10) === today && hit(d)) ? 'done'
+        : String(x.time || '00:00') <= hhmm ? 'due' : 'upcoming';
+      return '<div class="duty"><span class="tm">' + esc(x.time || '--:--') + '</span><span class="dd">' + esc(x.duty || '') + '</span><span class="dst ' + st + '">' + (st === 'done' ? 'DONE' : up(st)) + '</span></div>';
+    }).join('');
+  });
+  $('rhythmBody').innerHTML = any ? html : '<div class="empty">No duties fall on today. Once a daily rhythm is set up, each duty shows here with its status.</div>';
+}
+
+/* KPIs: labelled in the business's own words (camp.kpi_labels) */
+const pretty = k => String(k).replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
+function kpiLabel(biz, k) {
+  const L = CAMP.kpi_labels || {};
+  return (L[biz] && L[biz][k]) || L[k] || pretty(k);
+}
+const money = n => '$' + Number(n || 0).toLocaleString();
+function renderKpis() {
+  $('bizrow').innerHTML = BUSINESSES.length > 1 ? BUSINESSES.map(b => '<button data-b="' + esc(b.id) + '" class="' + (b.id === curBiz ? 'on' : '') + '" style="--bc:' + esc(b.color) + '">' + esc(up(b.name)) + '</button>').join('') : '';
+  const L = state.live[curBiz];
+  if (!L) { $('kpiBody').innerHTML = '<div class="empty">Waiting for ' + esc((bizOf(curBiz) || {}).name || curBiz) + ' numbers...</div>'; return; }
+  const kv = (obj, isMoney) => Object.keys(obj || {}).filter(k => typeof obj[k] === 'number').map(k => '<div class="kv ' + (isMoney ? 'money' : '') + '"><span>' + esc(kpiLabel(curBiz, k)) + '</span><b>' + (isMoney ? money(obj[k]) : Number(obj[k]).toLocaleString()) + '</b></div>').join('');
+  const a = kv(L.revenue, true), b = kv(L.kpis, false);
+  const log = (L.log || []).slice(0, 8).map(l => '<div class="log-i"><span class="lt">' + esc(l.time) + '</span>' + esc(l.msg) + '</div>').join('');
+  $('kpiBody').innerHTML = (a || b ? '<div class="kgrid">' + a + b + '</div>' : '<div class="empty">No numbers recorded yet. Agents add them with log_event --bump.</div>')
+    + (log ? '<div class="sub">RECENT ACTIVITY</div>' + log : '');
+}
+$('bizrow').addEventListener('click', e => { const b = e.target.closest('[data-b]'); if (b) { curBiz = b.dataset.b; renderKpis(); } });
+
+/* chat */
+function renderChat() {
+  const feed = $('chatfeed');
+  feed.innerHTML = state.chat.slice(-60).map(m => '<div class="chat-line"><span class="ts">' + esc(m.ts) + '</span><span class="who">' + esc(m.agent) + ':</span>' + esc(m.msg) + '</div>').join('')
+    || '<div class="empty">Quiet so far. Say something below.</div>';
+  feed.scrollTop = feed.scrollHeight;
+}
+const whoSel = $('chatWho');
+[OPERATOR, ...DIVS.map(d => (generalOf(d) || {}).callsign || d.general).filter(Boolean)].forEach(n => { const o = document.createElement('option'); o.value = o.textContent = n; whoSel.appendChild(o); });
+$('chatform').addEventListener('submit', async e => {
+  e.preventDefault();
+  const msg = $('chatMsg').value.trim(); if (!msg) return;
+  $('chatMsg').value = '';
+  try { await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agent: whoSel.value, msg }) }); pollChat(); } catch (err) {}
+});
+
+/* brief */
+async function pollBrief() {
+  try {
+    const b = await jget('/api/brief');
+    $('pane-brief').innerHTML = b && b.name
+      ? '<div class="grp-h">' + esc(up(b.name)) + (b.date ? ' &middot; ' + esc(b.date) : '') + '</div><div class="brief">' + esc(b.markdown || '') + '</div>'
+      : '<div class="empty">No morning brief yet. When one is written it shows here.</div>';
+  } catch (e) { $('pane-brief').innerHTML = '<div class="empty">The brief is not available right now.</div>'; }
+}
+
+/* seat click -> roster tab with that division open */
+const raycaster = new THREE.Raycaster();
+renderer.domElement.addEventListener('click', e => {
+  raycaster.setFromCamera(new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), camera);
+  for (const h of raycaster.intersectObjects(scene.children, true)) {
+    const idx = h.object.userData.seatIndex;
+    if (idx === undefined || idx === 0) continue;
+    const d = seats[idx].st.div; curDivOpen = d.id;
+    selectTab('roster'); renderRoster();
+    const g = generalOf(d); if (g) showDossier(g);
+    const el = document.querySelector('.div[data-div="' + d.id + '"]'); if (el) el.scrollIntoView({ block: 'nearest' });
+    return;
+  }
+});
+
+/* tabs + panel toggles */
+function selectTab(name) {
+  document.querySelectorAll('#side .tabs button').forEach(b => b.classList.toggle('on', b.dataset.pane === name));
+  document.querySelectorAll('#side .pane').forEach(p => p.classList.toggle('on', p.id === 'pane-' + name));
+}
+document.querySelector('#side .tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) selectTab(b.dataset.pane); });
+document.querySelectorAll('[data-tgl]').forEach(h => h.addEventListener('click', () => {
+  const p = h.closest('.panel'); p.classList.toggle('min'); h.querySelector('.tgl').textContent = p.classList.contains('min') ? '+' : '—';
+}));
+function tickClock() {
+  const d = new Date();
+  $('clock').textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  $('datestr').textContent = d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase();
+}
+
+/* polling */
+async function pollLiveOps() {
+  try {
+    const d = await jget('/api/army?live=1');
+    state.deps = d.deployments || []; state.dutyStatus = d.duty_status || {};
+    setConn(true); paintSeats(); renderLive(); renderRhythm();
+  } catch (e) { setConn(false); }
+}
+async function pollKpis() {
+  await Promise.all(BUSINESSES.map(async b => { try { state.live[b.id] = await jget('/api/live?biz=' + encodeURIComponent(b.id)); } catch (e) {} }));
+  renderKpis();
+}
+async function pollChat() {
+  try { const j = await jget('/api/chat'); const m = j.messages || []; if (m.length !== state.lastChatLen) { state.chat = m; state.lastChatLen = m.length; renderChat(); } } catch (e) {}
+}
+async function refreshRoster() {   // if the roster was empty at load, keep trying so a later build shows up
+  if (await loadArmy()) { if ((ARMY.divisions || []).length !== N) location.reload(); renderRoster(); renderCamps(); renderRhythm(); }
+}
+
+/* animation */
+const clock = new THREE.Clock(); let elapsed = 0;
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), .05); elapsed += dt;
+  flameSprites.forEach((f, i) => { const n = Math.sin(elapsed * 11 + i * 2.4) * .5 + Math.sin(elapsed * 23 + i) * .5; f.scale.set(.3 + n * .05, .46 + n * .1, 1); f.material.opacity = .82 + n * .18; });
+  torchFlames.forEach((f, i) => { const n = Math.sin(elapsed * 9 + i * 3.1) * .5 + Math.sin(elapsed * 19 + i * 1.7) * .5; f.scale.set(1 + n * .12, 1.5 + n * .25, 1); });
+  candleLight.intensity = 92 + Math.sin(elapsed * 13) * 9;
+  torchLights.forEach((L, i) => { L.intensity = 44 + Math.sin(elapsed * 8 + i * 2.2) * 8; });
+  sigil.rotation.z = elapsed * .05; sigilMat.opacity = .82 + Math.sin(elapsed * 1.6) * .18;
+  banners.forEach((b, i) => { b.rotation.z = Math.sin(elapsed * .9 + i * 1.3) * .035; });
+  const dp = dust.geometry.attributes.position;
+  for (let i = 0; i < dustN; i++) { dp.array[i * 3 + 1] += Math.sin(elapsed * .5 + i) * .0015 + .0011; if (dp.array[i * 3 + 1] > 14) dp.array[i * 3 + 1] = .4; }
+  dp.needsUpdate = true;
+  seats.forEach((seat, i) => {
+    if (seat.embers.material.opacity > 0) {
+      const p = seat.embers.geometry.attributes.position;
+      for (let k = 0; k < seat.emberVel.length; k++) {
+        p.array[k * 3 + 1] += seat.emberVel[k] * dt;
+        if (p.array[k * 3 + 1] > 5.2) { p.array[k * 3 + 1] = 1; p.array[k * 3] = seat.baseX + (rnd() - .5) * 1.2; p.array[k * 3 + 2] = seat.baseZ + (rnd() - .5) * 1.2; }
+      }
+      p.needsUpdate = true;
+    }
+    const kn = seat.knight, breathe = Math.sin(elapsed * 1.25 + i * 1.7) * .012;
+    kn.torso.position.y = kn.torsoY + breathe; kn.tabard.position.y = kn.torsoY - .06 + breathe;
+    kn.head.rotation.x += ((kn.headBow ?? .3) - kn.head.rotation.x) * .04;
+    kn.head.rotation.y += ((seat.running ? Math.sin(elapsed * .5 + i * 2.3) * .45 : 0) - kn.head.rotation.y) * .03;
+  });
+  controls.update(); composer.render(); labelRenderer.render(scene, camera);
+}
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); labelRenderer.setSize(innerWidth, innerHeight);
+});
+
+/* boot */
+tickClock(); setInterval(tickClock, 15000);
+renderRoster(); renderCamps(); renderRhythm(); renderLive(); renderKpis(); renderChat();
+pollLiveOps(); setInterval(pollLiveOps, 3000);
+pollKpis(); setInterval(pollKpis, 6000);
+pollChat(); setInterval(pollChat, 4000);
+pollBrief(); setInterval(pollBrief, 60000);
+setInterval(refreshRoster, 30000);
+animate();
+setTimeout(() => $('loading').classList.add('gone'), 1200);
+</script>
+</body>
+</html>

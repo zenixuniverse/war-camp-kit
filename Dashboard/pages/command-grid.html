@@ -1,0 +1,418 @@
+<!--
+  TEMPLATE — /setup-camp copies this to a business-named page and tunes it (see Dashboard/API.md tuning checklist).
+  Look: "command grid" — flat, dense, business numbers first. Data: /api/camp, /api/army, /api/live?biz=, /api/chat, /api/brief.
+  No build step. Only external requests: Google Fonts stylesheet.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Command Grid</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230b0d10'/><path d='M6 22l6-8 5 5 9-12' fill='none' stroke='%23d4a04a' stroke-width='3'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link id="fontBase" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0d10; --accent:#d4a04a; --accent2:#e0463c;
+    --panel:#11151a; --panel2:#171c23; --line:#232b35;
+    --text:#d6dde6; --dim:#7b8794; --ok:#3ddc84; --warn:#ffb020; --bad:#ff5c6c;
+    --font-display:'Share Tech Mono';
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:13px;line-height:1.4}
+  body{min-height:100vh;background-image:linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);background-size:36px 36px}
+  button,input,select,textarea{font:inherit;color:inherit}
+  .mono{font-family:var(--font-display),'Share Tech Mono',monospace}
+  a{color:var(--accent)}
+
+  header{position:sticky;top:0;z-index:20;background:rgba(11,13,16,.94);backdrop-filter:blur(6px);border-bottom:2px solid var(--accent);display:flex;align-items:center;gap:16px;padding:8px 16px;flex-wrap:wrap}
+  header h1{font-family:var(--font-display),monospace;font-size:18px;letter-spacing:.14em;text-transform:uppercase;font-weight:400}
+  header h1 span{color:var(--accent)}
+  .sub{font-family:var(--font-display),monospace;font-size:11px;color:var(--dim);letter-spacing:.14em;text-transform:uppercase}
+  .sp{flex:1}
+  #conn{display:flex;align-items:center;gap:6px;font-family:var(--font-display),monospace;font-size:11px;letter-spacing:.12em;color:var(--ok);border:1px solid var(--line);padding:3px 9px;border-radius:2px}
+  #conn i{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 6px var(--ok)}
+  #conn.dead{color:var(--bad)} #conn.dead i{background:var(--bad);box-shadow:0 0 6px var(--bad);animation:blink 1s infinite}
+  @keyframes blink{50%{opacity:.3}}
+  #clock{font-family:var(--font-display),monospace;font-size:14px;color:var(--accent);letter-spacing:.1em}
+
+  main{max-width:1680px;margin:0 auto;padding:14px 16px 40px}
+  .lbl{font-family:var(--font-display),monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:10px;margin:0 0 10px}
+  .lbl::before{content:'//';color:var(--dim)} .lbl::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+  .lbl .meta{order:3;margin-left:auto;color:var(--dim);letter-spacing:.08em}
+
+  /* KPI grid */
+  .biz{margin-bottom:18px}
+  .biz-h{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
+  .biz-h b{font-family:var(--font-display),monospace;font-size:15px;letter-spacing:.12em;text-transform:uppercase;color:var(--c)}
+  .biz-h i{width:10px;height:10px;background:var(--c);display:inline-block;align-self:center}
+  .kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:8px}
+  .tile{background:var(--panel);border:1px solid var(--line);border-bottom:2px solid var(--c);padding:10px 12px;min-width:0;position:relative}
+  .tile:hover{border-color:var(--c)}
+  .tile .k{font-family:var(--font-display),monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tile .v{font-family:var(--font-display),monospace;font-size:28px;color:#fff;line-height:1.1;margin-top:6px;overflow-wrap:anywhere}
+  .tile .d{font-family:var(--font-display),monospace;font-size:10.5px;color:var(--ok);height:14px;margin-top:2px}
+  .tile.money .v{color:var(--accent)}
+  .tile.flash{animation:fl 1.6s}
+  @keyframes fl{0%{background:rgba(61,220,132,.22)}100%{background:var(--panel)}}
+  .none{color:var(--dim);font-style:italic;padding:10px 0}
+
+  /* panels */
+  .row{display:grid;gap:12px;margin-bottom:14px}
+  .r3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .r2{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+  @media(max-width:1100px){.r3,.r2{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);position:relative;display:flex;flex-direction:column;min-height:0}
+  .panel::before{content:'';position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.5}
+  .ph{padding:9px 12px;border-bottom:1px solid var(--line);font-family:var(--font-display),monospace;letter-spacing:.16em;text-transform:uppercase;font-size:11.5px;color:var(--accent);display:flex;gap:8px;align-items:center}
+  .ph .meta{margin-left:auto;color:var(--dim);letter-spacing:.06em}
+  .pb{padding:10px 12px;overflow:auto;max-height:400px;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+  .empty{color:var(--dim);font-style:italic;padding:4px 0}
+  .pill{display:inline-block;font-family:var(--font-display),monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:1px 7px;border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+  .pill.running,.pill.working,.pill.deployed{color:var(--accent);border-color:var(--accent);animation:blink 1.6s infinite}
+  .pill.done{color:var(--ok);border-color:var(--ok)} .pill.blocked,.pill.lost{color:var(--bad);border-color:var(--bad)} .pill.due{color:var(--warn);border-color:var(--warn)}
+  .dot{display:inline-block;width:8px;height:8px;background:var(--c,var(--accent));flex:none}
+
+  /* ops */
+  .grp{font-family:var(--font-display),monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent2);border-bottom:1px dotted var(--line);margin:10px 0 4px;padding-bottom:2px}
+  .grp:first-child{margin-top:0}
+  .op{padding:5px 0 6px 8px;border-left:3px solid var(--c,var(--line));margin-bottom:4px;background:var(--panel2)}
+  .op .l1{display:flex;gap:8px;align-items:center}
+  .op .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .op .el{margin-left:auto;padding-right:6px;font-family:var(--font-display),monospace;color:var(--accent);font-size:11px;white-space:nowrap}
+  .op .ds{color:var(--text);font-size:12.5px;padding-right:6px}
+  .op .dg{color:var(--dim);font-size:11.5px;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:6px}
+  .op.past{opacity:.6}
+
+  /* duties */
+  .duty{padding:5px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:44px 1fr auto;gap:2px 8px;align-items:center}
+  .duty .tm{font-family:var(--font-display),monospace;color:var(--accent)}
+  .duty .dd{grid-column:2/4;font-size:12px;color:var(--text)}
+  .duty .dv{font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+  .duty .need{grid-column:2/4;font-size:11.5px;color:var(--warn)}
+  .tabsb{display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap}
+  .tabsb button,.btn{background:var(--panel2);border:1px solid var(--line);color:var(--dim);font-family:var(--font-display),monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:4px 10px;cursor:pointer}
+  .tabsb button.on,.btn:hover,.tabsb button:hover{color:var(--accent);border-color:var(--accent)}
+  .btn.go{color:var(--bg);background:var(--accent);border-color:var(--accent)}
+
+  /* chat */
+  #chatlog{height:260px;max-height:none}
+  .cl{padding:2px 0;font-size:12.5px;overflow-wrap:anywhere}
+  .cl .ts{font-family:var(--font-display),monospace;font-size:10px;color:var(--dim);margin-right:6px}
+  .cl .who{font-family:var(--font-display),monospace;font-weight:700;color:var(--accent);margin-right:6px}
+  #chatform{display:flex;gap:6px;padding:8px 12px;border-top:1px solid var(--line)}
+  #chatform input{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);padding:5px 8px;outline:none}
+  #chatform input:focus{border-color:var(--accent)}
+  #chatform input#who{flex:none;width:100px}
+
+  /* roster */
+  .chips{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+  .chips button{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--c,var(--accent));color:var(--text);font-size:11.5px;padding:3px 8px;cursor:pointer}
+  .chips button.on{border-color:var(--c,var(--accent));background:var(--bg)}
+  .roster{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px}
+  .ag{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--c,var(--line));padding:6px 8px;cursor:pointer;min-width:0}
+  .ag:hover,.ag.sel{border-color:var(--c,var(--accent))}
+  .ag .n{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ag .c{font-family:var(--font-display),monospace;font-size:10px;color:var(--dim);letter-spacing:.08em}
+  .ag.eng{box-shadow:inset 0 0 0 1px var(--accent)}
+  #search{width:100%;background:var(--bg);border:1px solid var(--line);padding:5px 8px;margin-bottom:8px;outline:none}
+  #search:focus{border-color:var(--accent)}
+  #dossier{margin-top:10px;border-top:1px dashed var(--line);padding-top:10px}
+  #dossier h3{font-family:var(--font-display),monospace;font-size:16px;letter-spacing:.08em;color:var(--accent);font-weight:400}
+  #dossier p{margin:6px 0;color:var(--text)} #dossier h4{font-family:var(--font-display),monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent2);margin:8px 0 2px}
+  #dossier ul{padding-left:18px;color:var(--dim)}
+
+  /* campaigns */
+  .camp{border:1px solid var(--line);margin-bottom:6px;background:var(--panel2)}
+  .camp>.h{padding:6px 10px;cursor:pointer}
+  .camp>.h b{color:var(--accent)} .camp>.h div{color:var(--dim);font-size:12px}
+  .camp .body{display:none;padding:0 10px 8px}
+  .camp.open .body{display:block}
+  .phase{border-left:2px solid var(--line);padding:2px 8px;margin-top:6px;font-size:12px}
+  .phase b{font-family:var(--font-display),monospace;letter-spacing:.06em}
+  .phase .g{color:var(--warn)}
+
+  /* brief + log */
+  #brief{font-size:12.5px} #brief h1,#brief h2,#brief h3{font-family:var(--font-display),monospace;color:var(--accent);font-weight:400;margin:10px 0 4px;letter-spacing:.06em}
+  #brief h1{font-size:16px} #brief h2{font-size:14px} #brief h3{font-size:12.5px}
+  #brief ul{padding-left:18px} #brief code{background:var(--bg);padding:0 4px} #brief p{margin:4px 0}
+  .logl{font-size:12px;padding:2px 0;border-bottom:1px solid var(--line)} .logl .t{font-family:var(--font-display),monospace;color:var(--dim);margin-right:6px}
+  #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--accent);color:var(--bg);font-family:var(--font-display),monospace;padding:7px 16px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:50}
+  #toast.on{opacity:1}
+  @media(max-width:600px){.tile .v{font-size:22px}header h1{font-size:15px}}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title"><span>Command</span> Grid</h1>
+  <div class="sub" id="subtitle"></div>
+  <div class="sp"></div>
+  <div id="conn"><i></i><span>LINKING</span></div>
+  <div id="clock" aria-label="Local time"></div>
+</header>
+
+<main>
+  <div class="lbl" id="kpiLbl">Business numbers<span class="meta" id="kpiMeta"></span></div>
+  <div id="kpis"></div>
+
+  <div class="row r3">
+    <section class="panel"><div class="ph"><span id="opsT">Live operations</span><span class="meta" id="opsM"></span></div><div class="pb" id="ops"><div class="empty">Loading...</div></div></section>
+    <section class="panel"><div class="ph"><span>Today's rhythm</span><span class="meta" id="dutyM"></span></div><div class="pb" id="duties"><div class="empty">Loading...</div></div></section>
+    <section class="panel"><div class="ph"><span id="chatT">Chat</span><span class="meta" id="chatM"></span></div>
+      <div class="pb" id="chatlog"></div>
+      <form id="chatform" autocomplete="off"><input id="who" class="mono" value="OPERATOR" maxlength="24" aria-label="Your callsign"><input id="msg" placeholder="Post a line..." aria-label="Message"><button class="btn go" type="submit">Send</button></form>
+    </section>
+  </div>
+
+  <div class="row r2">
+    <section class="panel"><div class="ph"><span id="rosT">Roster</span><span class="meta" id="rosM"></span></div>
+      <div class="pb" style="max-height:560px">
+        <input id="search" type="search" placeholder="Search by name, role or callsign" aria-label="Search roster">
+        <div class="chips" id="chips"></div>
+        <div class="roster" id="roster"></div>
+        <div id="dossier" hidden></div>
+      </div>
+    </section>
+    <div style="display:grid;gap:12px;align-content:start;min-width:0">
+      <section class="panel"><div class="ph"><span id="campT">Campaigns</span><span class="meta" id="campM"></span></div><div class="pb" id="camps"></div></section>
+      <section class="panel"><div class="ph"><span>Morning brief</span><span class="meta" id="briefM"></span></div><div class="pb" id="brief"><div class="empty">No brief yet.</div></div></section>
+    </div>
+  </div>
+
+  <div class="lbl">Activity<span class="meta">newest first</span></div>
+  <div class="row" id="logs" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))"></div>
+</main>
+<div id="toast" role="status"></div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const J = (u, o) => fetch(u, o).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+const up = s => String(s || '').toUpperCase();
+const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
+const plural = s => /s$/i.test(s) ? s : s + 's';
+
+let CAMP = {}, TH = {}, T = {}, BIZ = [], A = null, LIVE = {}, PREV = {}, DEPS = [], DUTY = {}, selDiv = 'all', selAgent = null;
+let ok = false;
+
+/* ---------- theme from /api/camp ---------- */
+function applyTheme() {
+  const r = document.documentElement.style;
+  if (TH.accent) r.setProperty('--accent', TH.accent);
+  if (TH.accent_2) r.setProperty('--accent2', TH.accent_2);
+  if (TH.background) r.setProperty('--bg', TH.background);
+  if (TH.font_display) {
+    r.setProperty('--font-display', "'" + TH.font_display + "'");
+    const l = document.createElement('link'); l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(TH.font_display).replace(/%20/g, '+') + ':wght@400;700&display=swap';
+    document.head.appendChild(l);
+  }
+  const title = TH.camp_title || 'Command Grid';
+  document.title = title;
+  const w = title.split(' '), last = w.pop();
+  $('title').innerHTML = (w.length ? '<span>' + esc(w.join(' ')) + '</span> ' : '') + (w.length ? esc(last) : '<span>' + esc(last) + '</span>');
+  $('subtitle').textContent = [CAMP.org, CAMP.operator].filter(Boolean).join(' / ');
+  $('chatT').textContent = T.chat;  $('campT').textContent = plural(T.campaign); $('rosT').textContent = (T.army || 'Roster') + ' roster';
+}
+
+/* ---------- KPI tiles: generated from whatever keys exist ---------- */
+const MONEY_RE = /(revenue|rev|mrr|arr|sales|cash|income|profit|spend|cost|price|paid|gross|net|fee|budget|usd|dollar|collected|invoice|\$)/i;
+const prettify = k => String(k).replace(/[_\-.]+/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').trim().replace(/\b\w/g, c => c.toUpperCase());
+const labelFor = k => (CAMP.kpi_labels && CAMP.kpi_labels[k]) || prettify(k);
+const fmtMoney = n => '$' + Number(n).toLocaleString(undefined, { maximumFractionDigits: Math.abs(n) % 1 ? 2 : 0 });
+const fmtNum = n => Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
+function tilesFor(data) {
+  const out = [];
+  for (const grp of ['kpis', 'revenue']) {
+    const o = data && data[grp]; if (!o || typeof o !== 'object') continue;
+    for (const [k, v] of Object.entries(o)) {
+      if (v === null || typeof v === 'object') continue;
+      const isNum = typeof v === 'number' || (v !== '' && !isNaN(Number(v)));
+      const money = isNum && (grp === 'revenue' || MONEY_RE.test(k));
+      out.push({ id: grp + '.' + k, k, v, isNum, money });
+    }
+  }
+  return out;
+}
+function renderKpis() {
+  let total = 0;
+  const html = BIZ.map(b => {
+    const d = LIVE[b.id], tiles = d ? tilesFor(d) : [];
+    total += tiles.length;
+    const body = tiles.length ? '<div class="kgrid">' + tiles.map(t => {
+      const prev = (PREV[b.id] || {})[t.id], now = t.isNum ? Number(t.v) : t.v;
+      const delta = t.isNum && prev !== undefined && now !== prev ? (now > prev ? '+' : '') + fmtNum(now - prev) : '';
+      return `<div class="tile ${t.money ? 'money' : ''}${delta ? ' flash' : ''}" style="--c:${esc(b.color || 'var(--accent)')}" data-id="${esc(t.id)}"><div class="k" title="${esc(t.k)}">${esc(labelFor(t.k))}</div><div class="v">${t.isNum ? (t.money ? fmtMoney(now) : fmtNum(now)) : esc(t.v)}</div><div class="d">${esc(delta)}</div></div>`;
+    }).join('') + '</div>' : `<div class="none">No numbers reported for ${esc(b.name)} yet. Agents write them with <span class="mono">Dashboard/log_event.py --bump</span>.</div>`;
+    return `<div class="biz" style="--c:${esc(b.color || 'var(--accent)')}"><div class="biz-h"><i></i><b>${esc(b.name)}</b><span class="sub">${d && d.last_updated ? 'updated ' + esc(String(d.last_updated).replace('T', ' ').slice(0, 16)) : ''}</span></div>${body}</div>`;
+  }).join('');
+  $('kpis').innerHTML = html; $('kpiMeta').textContent = total + ' metrics';
+  PREV = {}; for (const b of BIZ) { PREV[b.id] = {}; tilesFor(LIVE[b.id]).forEach(t => { if (t.isNum) PREV[b.id][t.id] = Number(t.v); }); }
+}
+function renderLogs() {
+  $('logs').innerHTML = BIZ.map(b => {
+    const log = (LIVE[b.id] && LIVE[b.id].log) || [];
+    return `<section class="panel" style="--c:${esc(b.color || 'var(--accent)')}"><div class="ph"><span class="dot"></span><span>${esc(b.name)}</span></div><div class="pb" style="max-height:200px">${
+      log.slice(0, 20).map(l => `<div class="logl"><span class="t">${esc(l.time || '')}</span>${esc(l.msg)}</div>`).join('') || '<div class="empty">Nothing logged yet.</div>'}</div></section>`;
+  }).join('');
+}
+
+/* ---------- roster helpers ---------- */
+const bizColor = id => (BIZ.find(b => b.id === id) || {}).color || 'var(--accent)';
+const key = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+let BYKEY = new Map(), DIVBY = {};
+function indexArmy() {
+  BYKEY = new Map(); DIVBY = {};
+  (A.divisions || []).forEach(d => DIVBY[d.id] = d);
+  (A.agents || []).forEach((a, i) => { BYKEY.set(key(a.id), i); BYKEY.set(key(a.name), i); if (a.callsign) BYKEY.set(key(a.callsign), i); });
+}
+const engagedKeys = () => new Set(DEPS.filter(d => d.status === 'deployed' || d.status === 'working').map(d => key(d.type)));
+
+/* ---------- live operations ---------- */
+function elapsed(s) { if (!s) return ''; const m = Math.max(0, Math.round((Date.now() - new Date(s)) / 60000)); return m < 60 ? m + 'm' : Math.floor(m / 60) + 'h' + (m % 60) + 'm'; }
+function renderOps() {
+  const live = DEPS.filter(d => d.status === 'deployed' || d.status === 'working'), past = DEPS.filter(d => !(d.status === 'deployed' || d.status === 'working')).slice(-6).reverse();
+  $('opsM').textContent = live.length + ' active';
+  if (!DEPS.length) { $('ops').innerHTML = `<div class="empty">Nobody is ${esc(T.deploy.toLowerCase())}ed right now. When you dispatch an agent from Claude it appears here with what it is doing.</div>`; return; }
+  const byCamp = {}; live.forEach(d => (byCamp[d.campaign || 'Ad hoc'] = byCamp[d.campaign || 'Ad hoc'] || []).push(d));
+  const row = d => `<div class="op ${d.status === 'done' || d.status === 'lost' ? 'past' : ''}" style="--c:${esc(bizColor(d.biz))}"><div class="l1"><span class="nm">${esc(d.type)}</span><span class="pill ${esc(d.status)}">${esc(d.status)}</span><span class="el">${esc(elapsed(d.started))}</span></div>${d.description ? `<div class="ds">${esc(d.description)}</div>` : ''}${d.doing ? `<div class="dg">${esc(d.doing)}</div>` : ''}</div>`;
+  $('ops').innerHTML = (live.length ? Object.entries(byCamp).map(([c, ds]) => `<div class="grp">${esc(c)} · ${ds.length}</div>` + ds.map(row).join('')).join('') : '<div class="empty">All quiet. Nothing running.</div>')
+    + (past.length ? `<div class="grp">Recent</div>` + past.map(row).join('') : '');
+}
+
+/* ---------- today's rhythm ---------- */
+let dutyBiz = null;
+const WEEK = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+function dutyToday(w, d) {
+  w = String(w || '').toLowerCase(); const day = d.getDate(), dow = d.getDay();
+  if (w === 'daily') return true; if (w === 'weekdays') return dow > 0 && dow < 6;
+  if (w === 'monthly-1') return day === 1; if (w === 'monthly-15') return day === 15;
+  if (w === 'monthly-last') return day === new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  if (w === 'quarterly') return day === 1 && d.getMonth() % 3 === 0;
+  return w === WEEK[dow];
+}
+function renderDuties() {
+  const el = $('duties'); if (!A) return;
+  const rh = A.rhythm || {}; dutyBiz = dutyBiz || (BIZ[0] && BIZ[0].id);
+  const R = rh[dutyBiz], now = new Date(), pad = n => String(n).padStart(2, '0'), hhmm = pad(now.getHours()) + ':' + pad(now.getMinutes());
+  const tabs = BIZ.length > 1 ? '<div class="tabsb">' + BIZ.map(b => `<button data-biz="${esc(b.id)}" class="${b.id === dutyBiz ? 'on' : ''}">${esc(b.name)}</button>`).join('') + '</div>' : '';
+  if (!R || !Array.isArray(R.duties)) { el.innerHTML = tabs + `<div class="empty">No daily rhythm written for this business yet. It lives in <span class="mono">Machine/Army/rhythm/${esc(dutyBiz)}.json</span>.</div>`; $('dutyM').textContent = ''; return; }
+  const duties = R.duties.filter(x => dutyToday(x.when, now)).sort((a, b) => String(a.time || '').localeCompare(String(b.time || '')));
+  const eng = engagedKeys(); let nDone = 0;
+  const rows = duties.map(x => {
+    const rep = (DUTY || {})[x.id];
+    const running = (x.agents || []).some(a => eng.has(key(a)));
+    const st = rep && ['done', 'blocked', 'skipped'].includes(rep.status) ? rep.status : running ? 'running' : String(x.time || '00:00') <= hhmm ? 'due' : 'upcoming';
+    if (st === 'done') nDone++;
+    const dv = DIVBY[x.division];
+    return `<div class="duty"><span class="tm">${esc(x.time || '--:--')}</span><span class="dv">${esc(dv ? dv.name : x.division || '')}</span><span class="pill ${st}">${st}</span><div class="dd">${esc(x.duty || '')}</div>${rep && rep.needs_operator ? `<div class="need">Needs you: ${esc(rep.needs_operator)}</div>` : ''}</div>`;
+  }).join('');
+  $('dutyM').textContent = nDone + '/' + duties.length + ' done';
+  el.innerHTML = tabs + (R.mission ? `<div class="empty" style="margin-bottom:6px">${esc(R.mission)}</div>` : '') + (rows || '<div class="empty">Nothing falls due today.</div>');
+}
+$('duties').addEventListener('click', e => { const b = e.target.closest('[data-biz]'); if (b) { dutyBiz = b.dataset.biz; renderDuties(); } });
+
+/* ---------- roster, dossier ---------- */
+function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 1600); }
+function copyText(s) {
+  const done = () => toast('Copied. Paste it into Claude.');
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(s).then(done, () => fb()); else fb();
+  function fb() { const ta = document.createElement('textarea'); ta.value = s; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) { toast('Copy failed'); } ta.remove(); }
+}
+function renderRoster() {
+  if (!A) return;
+  const divs = A.divisions || [], agents = A.agents || [], q = $('search').value.trim().toLowerCase(), eng = engagedKeys();
+  $('rosM').textContent = agents.length + ' ' + (agents.length === 1 ? 'agent' : 'agents') + ' / ' + divs.length + ' ' + plural(T.division).toLowerCase();
+  $('chips').innerHTML = `<button data-d="all" class="${selDiv === 'all' ? 'on' : ''}">All</button>` + divs.map(d => `<button data-d="${esc(d.id)}" class="${selDiv === d.id ? 'on' : ''}" style="--c:${esc(d.color || 'var(--accent)')}">${esc(d.name)}</button>`).join('');
+  const list = agents.map((a, i) => ({ a, i })).filter(({ a }) => (selDiv === 'all' || a.division === selDiv) && (!q || [a.name, a.role, a.callsign, a.description, a.vibe].join(' ').toLowerCase().includes(q)));
+  list.sort((x, y) => (eng.has(key(y.a.name))) - (eng.has(key(x.a.name))) || String(x.a.name).localeCompare(y.a.name));
+  $('roster').innerHTML = list.slice(0, 300).map(({ a, i }) => `<div class="ag ${eng.has(key(a.name)) ? 'eng' : ''} ${selAgent === i ? 'sel' : ''}" data-i="${i}" style="--c:${esc((DIVBY[a.division] || {}).color || a.color || 'var(--line)')}" tabindex="0" role="button"><div class="n">${esc(a.emoji || '')} ${esc(a.name)}</div><div class="c">${esc(a.callsign || a.rank || '')}${eng.has(key(a.name)) ? ' · ENGAGED' : ''}</div></div>`).join('') || '<div class="empty">No agents match.</div>';
+}
+function showDossier(i) {
+  const a = A.agents[i]; selAgent = i; const el = $('dossier'); el.hidden = false;
+  const ul = (t, arr) => Array.isArray(arr) && arr.length ? `<h4>${t}</h4><ul>${arr.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '';
+  const dv = DIVBY[a.division];
+  el.innerHTML = `<h3>${esc(a.emoji || '')} ${esc(a.name)} <span class="sub">${esc(a.callsign || '')}${dv ? ' / ' + esc(dv.name) : ''}${a.rank ? ' / ' + esc(a.rank) : ''}</span></h3>`
+    + (a.role ? `<p>${esc(a.role)}</p>` : '') + (a.description ? `<p style="color:var(--dim)">${esc(a.description)}</p>` : '')
+    + ul('Deploy when', a.triggers) + ul('Delivers', a.deliverables) + (a.cadence ? `<h4>Cadence</h4><p>${esc(a.cadence)}</p>` : '')
+    + (a.pairs_with && a.pairs_with.length ? `<h4>Works with</h4><p>${a.pairs_with.map(esc).join(', ')}</p>` : '')
+    + `<p><button class="btn go" id="copyOrder">Copy ${esc(T.deploy.toLowerCase())} order</button></p>`;
+  $('copyOrder').onclick = () => copyText('Use the ' + a.name + ' agent to: ');
+  renderRoster(); el.scrollIntoView({ block: 'nearest' });
+}
+$('chips').addEventListener('click', e => { const b = e.target.closest('[data-d]'); if (b) { selDiv = b.dataset.d; renderRoster(); } });
+$('roster').addEventListener('click', e => { const c = e.target.closest('[data-i]'); if (c) showDossier(+c.dataset.i); });
+$('roster').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { const c = e.target.closest('[data-i]'); if (c) { e.preventDefault(); showDossier(+c.dataset.i); } } });
+$('search').addEventListener('input', renderRoster);
+
+/* ---------- campaigns ---------- */
+function renderCamps() {
+  const cs = (A && A.campaigns) || []; $('campM').textContent = cs.length;
+  if (!cs.length) { $('camps').innerHTML = `<div class="empty">No ${esc(plural(T.campaign).toLowerCase())} defined yet.</div>`; return; }
+  const open = new Set([...document.querySelectorAll('.camp.open')].map(x => x.dataset.id));
+  $('camps').innerHTML = cs.map(c => `<div class="camp ${open.has(c.id) ? 'open' : ''}" data-id="${esc(c.id)}"><div class="h"><b>${esc(c.name)}</b><div>${esc(c.goal || '')}</div></div><div class="body">${c.trigger ? `<div class="phase"><b>Trigger</b> ${esc(c.trigger)}</div>` : ''}${(c.phases || []).map((p, j) => `<div class="phase"><b>${j + 1}. ${esc(p.name)}</b><div style="color:var(--dim)">${(p.agents || []).map(esc).join(', ')}</div>${p.output ? `<div>Output: ${esc(p.output)}</div>` : ''}${p.gate ? `<div class="g">Gate: ${esc(p.gate)}</div>` : ''}</div>`).join('')}</div></div>`).join('');
+}
+$('camps').addEventListener('click', e => { const h = e.target.closest('.camp > .h'); if (h) h.parentElement.classList.toggle('open'); });
+
+/* ---------- brief (tiny markdown) ---------- */
+function md(src) {
+  const lines = esc(src).split('\n'); let out = '', ul = false;
+  const inl = s => s.replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+  for (const raw of lines) {
+    const l = raw.trimEnd(), li = l.match(/^\s*[-*]\s+(.*)/), h = l.match(/^(#{1,3})\s+(.*)/);
+    if (li) { if (!ul) { out += '<ul>'; ul = true; } out += '<li>' + inl(li[1]) + '</li>'; continue; }
+    if (ul) { out += '</ul>'; ul = false; }
+    if (h) out += `<h${h[1].length}>${inl(h[2])}</h${h[1].length}>`; else if (l.trim()) out += '<p>' + inl(l) + '</p>';
+  }
+  return out + (ul ? '</ul>' : '');
+}
+async function loadBrief() {
+  try { const b = await J('/api/brief'); if (b.name) { $('brief').innerHTML = md(b.markdown); $('briefM').textContent = b.date || ''; } } catch (e) {}
+}
+
+/* ---------- chat ---------- */
+let chatSig = '';
+async function loadChat() {
+  try {
+    const c = await J('/api/chat'), m = c.messages || [], sig = m.length + '|' + (m.length ? m[m.length - 1].ts + m[m.length - 1].msg : '');
+    if (sig === chatSig) return; chatSig = sig;
+    const box = $('chatlog'), atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+    box.innerHTML = m.slice(-80).map(x => `<div class="cl"><span class="ts">${esc(String(x.ts).slice(5))}</span><span class="who">${esc(x.agent)}</span>${esc(x.msg)}</div>`).join('') || '<div class="empty">Quiet so far.</div>';
+    if (atEnd) box.scrollTop = box.scrollHeight; $('chatM').textContent = m.length + ' lines';
+  } catch (e) {}
+}
+$('chatform').addEventListener('submit', async e => {
+  e.preventDefault(); const msg = $('msg').value.trim(); if (!msg) return;
+  try { await J('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agent: $('who').value, msg }) }); $('msg').value = ''; chatSig = ''; loadChat(); } catch (err) { toast('Could not post'); }
+});
+
+/* ---------- polling ---------- */
+function setConn(v) { ok = v; const c = $('conn'); c.classList.toggle('dead', !v); c.querySelector('span').textContent = v ? 'LIVE' : 'OFFLINE'; }
+async function pollLive() {
+  try {
+    const r = await J('/api/army?live=1'); DEPS = r.deployments || []; DUTY = r.duty_status || {};
+    setConn(true); renderOps(); renderDuties(); if (A) renderRoster();
+  } catch (e) { setConn(false); }
+}
+async function pollKpis() {
+  await Promise.all(BIZ.map(async b => { try { LIVE[b.id] = await J('/api/live?biz=' + encodeURIComponent(b.id)); } catch (e) {} }));
+  renderKpis(); renderLogs();
+}
+function tick() { const d = new Date(); $('clock').textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + '  ' + d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }); }
+
+(async function init() {
+  CAMP = await J('/api/camp').catch(() => ({}));
+  TH = CAMP.theme || {}; T = { army: 'Army', division: 'Division', general: 'General', campaign: 'Campaign', deploy: 'Deploy', chat: 'Chat', ...(TH.terms || {}) };
+  BIZ = CAMP.businesses && CAMP.businesses.length ? CAMP.businesses : [];
+  applyTheme(); tick(); setInterval(tick, 20000);
+  try { A = await J('/api/army'); indexArmy(); DEPS = A.deployments || []; DUTY = A.duty_status || {}; } catch (e) { setConn(false); }
+  if (A) { renderRoster(); renderCamps(); renderOps(); renderDuties(); setConn(true); }
+  await pollKpis(); loadChat(); loadBrief();
+  setInterval(pollLive, 3000); setInterval(pollKpis, 10000); setInterval(loadChat, 5000); setInterval(loadBrief, 60000);
+})();
+</script>
+</body>
+</html>
