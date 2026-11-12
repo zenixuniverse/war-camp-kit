@@ -3,11 +3,11 @@
 A personal AI command camp for Claude Code: ~290 specialist agents organised into divisions, playbooks of multi-agent campaigns, a daily rhythm, and a live dashboard that shows every agent working. One interview turns it into **your** camp: the agents, their orders, the org chart, the playbooks and the dashboard's whole look are rebuilt around your business, your workflows and your brand.
 
 ## Install: paste one message into Claude Code
-Accept the GitHub invitation from the person who gave you this kit, then send this to Claude Code (desktop app or CLI):
+Send this to Claude Code (desktop app or CLI). No GitHub account is needed:
 
 > Install my camp from https://github.com/zenixuniverse/war-camp-kit. Clone it, follow its INSTALL_FOR_CLAUDE.md, then start /setup-camp with me.
 
-Claude checks Python and Git, clones the repo to a permanent folder (`~/WarCamp`), runs `install.py`, and starts the interview. If GitHub asks you to sign in, you do that yourself (`gh auth login` or the browser pop-up). Claude never asks for passwords or keys.
+Claude checks Python and Git, clones the repo to a permanent folder (`~/WarCamp`), runs `install.py`, and starts the interview. Claude never asks for passwords or keys.
 
 <details><summary>Manual install</summary>
 
